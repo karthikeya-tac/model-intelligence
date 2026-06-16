@@ -18,14 +18,15 @@ export default function Catalog() {
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState('');
 
-  const load = () => {
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     getModels()
-      .then(list => { setModels(list); setError(''); })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  };
-  useEffect(load, []);
+      .then(list => { if (!cancelled) { setModels(list); setError(''); } })
+      .catch(e => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const providers = useMemo(() => [...new Set(models.map(m => m._provider))], [models]);
   const shown = useMemo(() => models.filter(m =>

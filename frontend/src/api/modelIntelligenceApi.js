@@ -4,6 +4,13 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+// A production build with no VITE_API_BASE_URL silently talks to localhost — warn loudly so a
+// misconfigured deploy is obvious in the console instead of "nothing loads".
+if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
+  // eslint-disable-next-line no-console
+  console.warn('[niha] VITE_API_BASE_URL is not set — falling back to http://localhost:8000. Set it for production.');
+}
+
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },

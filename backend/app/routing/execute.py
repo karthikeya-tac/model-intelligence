@@ -16,6 +16,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
 
+from app.config import settings
+
 # catalog (provider_kind, tier) -> a real, current model to actually call
 STANDIN = {
     ("anthropic", "fast"): "claude-3-5-haiku-latest",
@@ -30,7 +32,7 @@ STANDIN = {
 }
 
 MAX_TOKENS = 512
-TIMEOUT = 40
+TIMEOUT = settings.exec_timeout   # seconds; configurable via NIHA_EXEC_TIMEOUT (default 20)
 
 
 def standin_model(provider_kind: str, tier: str) -> Optional[str]:
@@ -58,8 +60,10 @@ def _call_openai(model, prompt, key):
 
 
 def _call_google(model, prompt, key):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-    data = _post(url, {"content-type": "application/json"},
+    # key goes in a header (x-goog-api-key), NOT the URL — query-string keys leak into
+    # proxy/access logs and error traces.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    data = _post(url, {"content-type": "application/json", "x-goog-api-key": key},
                  {"contents": [{"parts": [{"text": prompt}]}]})
     return data["candidates"][0]["content"]["parts"][0]["text"]
 

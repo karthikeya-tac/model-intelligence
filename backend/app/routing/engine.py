@@ -145,31 +145,59 @@ class RouterService:
         if session_tokens:
             session_pct = round(session_tokens / max(1, self._tier_window.get(tier, 200000)) * 100, 1)
 
-        # 2. rules by priority
+        # 2. rules — collect matches, then resolve DETERMINISTICALLY (order-independent).
+        # Resolution: route/timed sets the base → strongest boost (highest min_tier) raises →
+        # strongest limit (lowest max_tier) caps → intent min_tier floor (step 4). The outcome
+        # no longer depends on the order rules happened to match in. Invalid tier values are
+        # skipped with a note instead of raising KeyError.
         applied: List[dict] = []
+        route_tier: Optional[str] = None     # from the highest-priority route/timed rule
+        boosts: List[str] = []               # min_tier floors requested by boost rules
+        limits: List[str] = []               # max_tier ceilings requested by limit rules
         redirect_model = None
         long_context = False
         cost_cap = None
+
+        def _valid_tier(t) -> bool:
+            if t in TIER_RANK:
+                return True
+            notes.append(f"ignored rule action: invalid tier '{t}'")
+            return False
+
         for r in sorted(self.store.rules(), key=lambda x: -PRIORITY_RANK.get(x.get("priority", "LOW"), 0)):
             if not self._rule_matches(r, prompt or "", intent_id, agent, workspace, session_pct):
                 continue
             action = r.get("action", {}) or {}
             rtype = r.get("type")
             if rtype in ("route", "timed") and "route_to_tier" in action:
-                tier = action["route_to_tier"]
+                t = action["route_to_tier"]
+                if _valid_tier(t) and route_tier is None:   # highest priority wins (first match)
+                    route_tier = t
             elif rtype == "boost" and "min_tier" in action:
-                if TIER_RANK[tier] < TIER_RANK[action["min_tier"]]:
-                    tier = action["min_tier"]
+                t = action["min_tier"]
+                if _valid_tier(t):
+                    boosts.append(t)
             elif rtype == "boost" and action.get("boost_to_long_context"):
                 long_context = True
             elif rtype == "limit" and "max_tier" in action:
-                if TIER_RANK[tier] > TIER_RANK[action["max_tier"]]:
-                    tier = action["max_tier"]
+                t = action["max_tier"]
+                if _valid_tier(t):
+                    limits.append(t)
             elif rtype == "redirect" and "redirect_to_model" in action:
                 redirect_model = action["redirect_to_model"]
             elif rtype == "cost_cap":
                 cost_cap = action.get("max_cost_per_request_usd")
             applied.append({"rule_id": r["id"], "name": r.get("name"), "type": rtype, "action": action})
+
+        # deterministic tier resolution (independent of rule match order)
+        if route_tier is not None:
+            tier = route_tier
+        for t in boosts:                       # raise to the strongest floor
+            if TIER_RANK[tier] < TIER_RANK[t]:
+                tier = t
+        for t in limits:                       # cap to the strongest ceiling
+            if TIER_RANK[tier] > TIER_RANK[t]:
+                tier = t
 
         # 3. architect mode (plan→powerful, exec→fast/standard)
         arch = self.store.settings("architect_mode")
@@ -186,11 +214,13 @@ class RouterService:
         est_in = max(1, len((prompt or "")) // CHARS_PER_TOKEN) + (session_tokens or 0)
         feats = Features(min_context=400000 if long_context else 0,
                          est_input_tokens=est_in, est_output_tokens=600)
-        if redirect_model:
-            m = next((x for x in self._models if x["id"] == redirect_model), None)
-            chosen, candidates = redirect_model, []
-            provider = m["provider"] if m else None
-            notes.append(f"redirected to {redirect_model}")
+        redirect_hit = next((x for x in self._models if x["id"] == redirect_model), None) if redirect_model else None
+        if redirect_model and redirect_hit is None:
+            notes.append(f"ignored redirect to unknown model '{redirect_model}'")
+        if redirect_hit is not None:
+            chosen, candidates = redirect_hit["id"], []
+            provider = redirect_hit.get("provider")
+            notes.append(f"redirected to {chosen}")
         else:
             ranked = self.selector.select(tier, intent_id, self._models, features=feats,
                                           profile=profile, budget_usd=cost_cap)

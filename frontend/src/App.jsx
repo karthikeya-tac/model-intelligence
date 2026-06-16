@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Console from './components/Console';
 import Configure from './components/Configure';
+import ErrorBoundary from './components/ErrorBoundary';
 import { loadAllModels, getHealth, getApiInfo } from './api/modelIntelligenceApi';
 import './index.css';
 
@@ -12,6 +13,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [health, setHealth] = useState(null);
   const [info, setInfo] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : '';
@@ -20,7 +22,10 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    loadAllModels().catch(() => {}).finally(() => { if (!cancelled) setReady(true); });
+    loadAllModels()
+      .then(() => { if (!cancelled) setLoadError(''); })
+      .catch(e => { if (!cancelled) setLoadError(e.message || 'Could not reach the backend'); })
+      .finally(() => { if (!cancelled) setReady(true); });
     getHealth().then(h => !cancelled && setHealth(h)).catch(() => !cancelled && setHealth({ status: 'down' }));
     getApiInfo().then(i => !cancelled && setInfo(i)).catch(() => {});
     return () => { cancelled = true; };
@@ -54,8 +59,16 @@ export default function App() {
 
       <main className="nx-main">
         <div className={`nx-col ${view === 'configure' ? 'wide' : ''}`}>
-          {view === 'console' && <Console />}
-          {view === 'configure' && (ready ? <Configure /> : <div className="nx-loading">Loading catalog…</div>)}
+          {(loadError || health?.status === 'down') && (
+            <div className="nx-note warn" style={{ marginBottom: 18 }}>
+              <b>Backend unreachable.</b> {loadError || 'The API at this origin is not responding.'} Start it with
+              {' '}<code>uvicorn app.main:app --port 8000</code> (or set <code>VITE_API_BASE_URL</code>), then reload.
+            </div>
+          )}
+          <ErrorBoundary>
+            {view === 'console' && <Console />}
+            {view === 'configure' && (ready ? <Configure /> : <div className="nx-loading">Loading catalog…</div>)}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

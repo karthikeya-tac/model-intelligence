@@ -36,6 +36,10 @@ class Settings:
     cors_origins = os.environ.get(
         "CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"
     ).split(",")
+    exec_timeout: int = int(os.environ.get("NIHA_EXEC_TIMEOUT", "20"))   # live provider-call timeout (s)
+    # Phase-0 runs SINGLE-WORKER (in-memory overlay is per-process). Read the common
+    # worker-count envs so we can warn at startup if someone scales out by accident.
+    worker_count: int = int(os.environ.get("WEB_CONCURRENCY") or os.environ.get("UVICORN_WORKERS") or "1")
 
 
 settings = Settings()

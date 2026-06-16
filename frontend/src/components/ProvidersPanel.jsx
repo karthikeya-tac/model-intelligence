@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   getProviders, getProviderHealth, getFallbackChains, saveFallbackChains,
   getTriggerConfig, saveTriggerConfig, getArchitectConfig, saveArchitectConfig,
@@ -23,14 +23,16 @@ export default function ProvidersPanel() {
   const [showConnect, setShowConnect] = useState(false);
   const [connectForm, setConnectForm] = useState({ kind: '', base_url: '' });
   const [testResult, setTestResult] = useState({});
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);   // guard setState after unmount
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
   const load = () => {
     setLoading(true);
     Promise.all([getProviders(), getProviderHealth(), getFallbackChains(), getTriggerConfig(), getArchitectConfig()])
-      .then(([p, h, c, t, a]) => { setProviders(p); setHealth(h); setChains(c); setTrigger(t); setArch(a); setError(''); })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+      .then(([p, h, c, t, a]) => { if (alive.current) { setProviders(p); setHealth(h); setChains(c); setTrigger(t); setArch(a); setError(''); } })
+      .catch(e => { if (alive.current) setError(e.message); })
+      .finally(() => { if (alive.current) setLoading(false); });
   };
   useEffect(load, []);
 

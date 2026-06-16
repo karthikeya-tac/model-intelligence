@@ -162,6 +162,24 @@ curl -X POST localhost:8000/api/v1/registry/reload
   map in `execute.py` to the provider's nearest real model (labeled "live via …").
 - **Secrets** are only `${ENV_VAR}` references; the API returns a configured/unset hint, never a value.
 
+## Phase-0 constraints (read before deploying)
+
+These are **deliberate prototype choices**, with Phase-1 seams already in place. They're called
+out here (and guarded in code) so they're not silent surprises:
+
+- **Unauthenticated / single-tenant.** No auth on any endpoint — including writes and
+  `/registry/reload`. Do **not** expose this to the internet. Phase-1 adds Bearer + role checks on
+  mutations (the `X-Org`/`Bearer` headers are already accepted, just not enforced).
+- **Single worker only.** All mutable state (overlay, telemetry, audit) lives in-memory **per
+  process**, so run with **one** worker. Multiple workers would each hold a divergent copy; the app
+  logs a warning at startup if it detects `WEB_CONCURRENCY`/`UVICORN_WORKERS > 1`. Phase-1's shared
+  DB store removes this limit.
+- **Non-persistent.** Writes reset on restart or `reload`; the audit log is in-memory since boot.
+- **Simulated telemetry/health.** `/routing/stats`, `/models/{id}/usage`, and provider health are
+  seeded/simulated, clearly labeled as such in the UI.
+- **Live output uses stand-in models.** Catalog names are future/fictional; with a key set, calls go
+  to the provider's nearest real model (`execute.py`). Timeout is `NIHA_EXEC_TIMEOUT` (default 20s).
+
 ## Out of scope (Phase 1)
 Postgres + Alembic, Key Vault + Managed Identity, RLS, real (non-standin) provider calls,
-persistent telemetry, scheduled health probes.
+persistent telemetry, scheduled health probes, auth enforcement, multi-worker/horizontal scaling.

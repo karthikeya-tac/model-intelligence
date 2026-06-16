@@ -3,7 +3,22 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# allowed enum values for rule validation (kept in lock-step with registry/enums.py)
+_TIERS = {"fast", "standard", "powerful"}
+_RULE_TYPES = {"route", "boost", "limit", "redirect", "cost_cap", "timed"}
+_PRIORITIES = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+_MATCH_BY = {"intent", "keyword", "agent", "workspace", "session_size"}
+
+
+def _check_action_tiers(action):
+    """Reject invalid tier values inside a rule action (else the router would skip them)."""
+    if action:
+        for k in ("route_to_tier", "min_tier", "max_tier"):
+            if k in action and action[k] not in _TIERS:
+                raise ValueError(f"action.{k} must be one of {sorted(_TIERS)}, got '{action[k]}'")
+    return action
 
 
 # ---- registry ----
@@ -78,6 +93,32 @@ class RuleCreate(BaseModel):
     expires_at: Optional[str] = None
     description: Optional[str] = None
 
+    @field_validator("type")
+    @classmethod
+    def _v_type(cls, v):
+        if v not in _RULE_TYPES:
+            raise ValueError(f"type must be one of {sorted(_RULE_TYPES)}")
+        return v
+
+    @field_validator("match_by")
+    @classmethod
+    def _v_match_by(cls, v):
+        if v not in _MATCH_BY:
+            raise ValueError(f"match_by must be one of {sorted(_MATCH_BY)}")
+        return v
+
+    @field_validator("priority")
+    @classmethod
+    def _v_priority(cls, v):
+        if v not in _PRIORITIES:
+            raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}")
+        return v
+
+    @field_validator("action")
+    @classmethod
+    def _v_action(cls, v):
+        return _check_action_tiers(v)
+
 
 class RulePatch(BaseModel):
     name: Optional[str] = None
@@ -89,6 +130,32 @@ class RulePatch(BaseModel):
     priority: Optional[str] = None
     status: Optional[str] = None
     expires_at: Optional[str] = None
+
+    @field_validator("type")
+    @classmethod
+    def _v_type(cls, v):
+        if v is not None and v not in _RULE_TYPES:
+            raise ValueError(f"type must be one of {sorted(_RULE_TYPES)}")
+        return v
+
+    @field_validator("match_by")
+    @classmethod
+    def _v_match_by(cls, v):
+        if v is not None and v not in _MATCH_BY:
+            raise ValueError(f"match_by must be one of {sorted(_MATCH_BY)}")
+        return v
+
+    @field_validator("priority")
+    @classmethod
+    def _v_priority(cls, v):
+        if v is not None and v not in _PRIORITIES:
+            raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}")
+        return v
+
+    @field_validator("action")
+    @classmethod
+    def _v_action(cls, v):
+        return _check_action_tiers(v)
 
 
 class RuleSimulate(BaseModel):

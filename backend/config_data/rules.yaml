@@ -1,9 +1,17 @@
 # ============================================================================
 # rules.yaml — IMPROVED for the rule-based experiment
 # ----------------------------------------------------------------------------
-# Rules override the default intent->tier routing. Higher priority wins.
-# Resolution order in the engine: route/timed set tier -> boost raises floor ->
-# limit lowers ceiling -> intent.min_tier enforced -> redirect can pin a model.
+# Rules override the default intent->tier routing.
+#
+# DETERMINISTIC RESOLUTION (independent of the order rules happen to match):
+#   1. the HIGHEST-priority route/timed rule sets the base tier
+#   2. the STRONGEST boost raises it   (tier = max(tier, every min_tier))
+#   3. the STRONGEST limit caps it     (tier = min(tier, every max_tier))   <- ceiling wins on conflict
+#   4. the intent's min_tier floor is enforced last
+#   5. a redirect rule pins a specific model (ignored if that model isn't in the catalog)
+# `priority` only decides which route/timed rule sets the base + the order rules appear in `reason`.
+# It does NOT let a boost beat a limit; the clamp above decides the tier.
+# Invalid tier values in an action are skipped with a note (never crash).
 #
 # FIXES vs the original yaml_files/rules.yaml:
 #   • REMOVED rule #5 (image_gen_redirect): it referenced intent_id
