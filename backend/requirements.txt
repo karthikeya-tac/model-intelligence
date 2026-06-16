@@ -1,0 +1,9 @@
+# Niha Model Intelligence backend — Phase 0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2,<3
+PyYAML>=6
+numpy>=1.26
+
+# Optional — only needed when SEMANTIC=1 (embedding Level-1 classifier):
+# sentence-transformers>=2.2

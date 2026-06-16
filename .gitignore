@@ -1,0 +1,32 @@
+# ── secrets (never commit) ──
+.env
+*.env.local
+backend/.env
+
+# ── copied UX design reference (cloned from another repo — not ours) ──
+ux/
+backend/_ux_tmp/
+
+# ── python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# ── node / build output ──
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── internal docs (not for the repo) ──
+ENDPOINT_AUDIT.md
+
+# ── editor / OS ──
+.DS_Store
+.idea/
+.vscode/
+*.log

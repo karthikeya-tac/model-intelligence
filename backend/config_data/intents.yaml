@@ -1,0 +1,212 @@
+# ============================================================================
+# intents.yaml — IMPROVED for the rule-based experiment
+# ----------------------------------------------------------------------------
+# Same taxonomy as yaml_files/intents.yaml, PLUS a `keywords:` list per intent.
+#
+# WHY THE CHANGE: the original intents.yaml only mapped intent -> tier. It had
+# no way to turn a raw prompt INTO an intent — so the rule-based router could
+# only work if the caller already told it the intent. Adding keywords makes the
+# baseline actually runnable on free text (keyword classifier), which is exactly
+# the rule-based weakness we want to measure against the semantic version.
+#
+#   tier values : fast | standard | powerful
+#   complexity  : 1 (trivial) .. 5 (frontier)
+#   default_tier: tier used when no rule overrides
+#   min_tier    : routing may go ABOVE this, never below   (min_tier <= default_tier)
+#   keywords    : lowercase substrings; a prompt is classified to the intent
+#                 with the most keyword hits (ties -> first listed).
+# ============================================================================
+
+version: 2   # bumped: added keywords
+
+categories:
+
+  # ---- CODE -------------------------------------------------------------
+  - name: CODE
+    intents:
+      - id: code_generation
+        name: Code generation
+        description: New code from a spec
+        complexity: 3
+        default_tier: standard
+        min_tier: fast
+        keywords: ["write a function", "implement", "generate code", "write code",
+                   "create a function", "build a", "add a method", "write a script",
+                   "function", "unit test", "write a test"]
+
+      - id: code_review
+        name: Code review
+        description: PR review for correctness and style
+        complexity: 3
+        default_tier: standard
+        min_tier: fast
+        keywords: ["review this", "code review", "pr review", "pull request",
+                   "feedback on this code", "is this code correct"]
+
+      - id: code_formatting
+        name: Code formatting
+        description: Style, lint, mechanical fixes
+        complexity: 1
+        default_tier: fast
+        min_tier: fast
+        keywords: ["format", "reformat", "lint", "style fix", "prettier", "indent"]
+
+      - id: code_completion
+        name: Code completion
+        description: Inline autocomplete
+        complexity: 1
+        default_tier: fast
+        min_tier: fast
+        keywords: ["complete this", "autocomplete", "finish this line", "complete the code"]
+
+  # ---- REASONING --------------------------------------------------------
+  - name: REASONING
+    intents:
+      - id: architecture_design
+        name: Architecture design
+        description: System / component design
+        complexity: 5
+        default_tier: powerful
+        min_tier: standard
+        keywords: ["architecture", "design a system", "system design", "scalable",
+                   "microservice", "component design", "high-level design"]
+
+      - id: multi_step_planning
+        name: Multi-step planning
+        description: Complex multi-phase decomposition
+        complexity: 5
+        default_tier: powerful
+        min_tier: standard
+        keywords: ["roadmap", "multi-phase", "break this down", "decompose",
+                   "delivery plan", "milestones", "step-by-step plan"]
+
+      - id: impact_analysis
+        name: Impact analysis
+        description: Cross-system change assessment
+        complexity: 5
+        default_tier: powerful
+        min_tier: standard
+        keywords: ["impact", "downstream", "what breaks", "what will break",
+                   "affected systems", "ripple", "blast radius"]
+
+      - id: math_problem
+        name: Math problem
+        description: Arithmetic, equations, quantitative word problems
+        complexity: 3
+        default_tier: standard
+        min_tier: fast
+        keywords: ["calculate", "solve", "equation", "what is the integral",
+                   "derivative", "compute", "percent of", "% of", "math problem"]
+
+  # ---- CONTENT ----------------------------------------------------------
+  - name: CONTENT
+    intents:
+      - id: documentation
+        name: Documentation
+        description: API docs, READMEs, quickstarts
+        complexity: 2
+        default_tier: fast
+        min_tier: fast
+        keywords: ["documentation", "write docs", "readme", "quickstart",
+                   "api docs", "document this", "write the docs"]
+
+      - id: summarisation
+        name: Summarisation
+        description: Condensing text
+        complexity: 2
+        default_tier: fast
+        min_tier: fast
+        keywords: ["summarize", "summarise", "tldr", "condense", "give me a summary"]
+
+      - id: creative_writing
+        name: Creative writing
+        description: Emails, stories, poems, marketing/blog copy
+        complexity: 3
+        default_tier: standard
+        min_tier: fast
+        keywords: ["write a poem", "write a story", "write an email", "draft an email",
+                   "compose", "marketing copy", "blog post", "write a song", "write a tagline",
+                   "poem", "short story", "song", "tagline"]
+
+  # ---- ANALYSIS ---------------------------------------------------------
+  - name: ANALYSIS
+    intents:
+      - id: security_scanning
+        name: Security scanning
+        description: Vulnerability detection on a snippet
+        complexity: 4
+        default_tier: standard
+        min_tier: standard
+        keywords: ["vulnerability", "vulnerabilities", "cve", "exploit",
+                   "security scan", "sast", "scan this for security"]
+
+      - id: security_architecture_review
+        name: Security architecture review
+        description: Deep security / boundary review (Opus-class)
+        complexity: 5
+        default_tier: powerful
+        min_tier: standard
+        keywords: ["security architecture", "trust boundary", "threat model",
+                   "security review", "security design review"]
+
+      - id: data_analysis
+        name: Data analysis
+        description: Find trends / insights in a dataset (non-security)
+        complexity: 4
+        default_tier: standard
+        min_tier: standard
+        keywords: ["analyze this data", "analyse this data", "trends in", "this dataset",
+                   "this csv", "what insights", "data analysis", "insights from"]
+
+  # ---- OPERATIONAL ------------------------------------------------------
+  - name: OPERATIONAL
+    intents:
+      - id: incident_response
+        name: Incident response
+        description: Emergency debugging with vague signals
+        complexity: 5
+        default_tier: powerful
+        min_tier: standard
+        keywords: ["incident", "production down", "prod is down", "is down",
+                   "production is down", "outage", "emergency debug", "p0", "sev1", "pager"]
+
+  # ---- GENERAL (non-dev / everyday) -------------------------------------
+  # Real users don't only ask dev questions. Without these, general prompts
+  # fall through to intent=None and silently land on the default tier.
+  - name: GENERAL
+    intents:
+      - id: factual_qa
+        name: Factual Q&A
+        description: General knowledge / lookup questions
+        complexity: 1
+        default_tier: fast
+        min_tier: fast
+        keywords: ["who is", "who was", "what is the capital", "capital of", "when did",
+                   "where is", "how many", "prime minister", "president of", "population of"]
+
+      - id: how_to_explanation
+        name: How-to / explanation
+        description: Explain a concept or simple how-to (not code authoring)
+        complexity: 2
+        default_tier: fast
+        min_tier: fast
+        keywords: ["how to", "how do i", "how does", "explain", "what does",
+                   "difference between", "why does", "why is", "what are"]
+
+      - id: conversational
+        name: Conversational
+        description: Greetings, small talk, meta questions
+        complexity: 1
+        default_tier: fast
+        min_tier: fast
+        keywords: ["hello", "hi there", "hey", "thanks", "thank you",
+                   "how are you", "good morning", "good evening", "can you help"]
+
+      - id: translation
+        name: Translation
+        description: Translate text between languages
+        complexity: 2
+        default_tier: fast
+        min_tier: fast
+        keywords: ["translate", "in french", "in spanish", "in german",
+                   "to english", "how do you say", "into spanish", "into french"]

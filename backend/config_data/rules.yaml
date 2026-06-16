@@ -1,0 +1,136 @@
+# ============================================================================
+# rules.yaml — IMPROVED for the rule-based experiment
+# ----------------------------------------------------------------------------
+# Rules override the default intent->tier routing. Higher priority wins.
+# Resolution order in the engine: route/timed set tier -> boost raises floor ->
+# limit lowers ceiling -> intent.min_tier enforced -> redirect can pin a model.
+#
+# FIXES vs the original yaml_files/rules.yaml:
+#   • REMOVED rule #5 (image_gen_redirect): it referenced intent_id
+#     'image_generation' (not in intents.yaml) and model 'openai/dall-e-3'
+#     (not in the 29-model catalog) — two dangling refs that can never fire.
+#   • REPLACED it with codex_redirect: a grounded redirect to gpt-5.3-codex,
+#     a model that actually exists in models.yaml.
+#   • FIXED the incident timed rule's expires_at (was 2026-06-11, already in the
+#     past as of 2026-06-12 -> the rule was silently dead). Now a live window.
+#
+# type        : route | boost | limit | redirect | cost_cap | timed
+# match_by    : intent | keyword | agent | workspace | session_size
+# priority    : LOW | MEDIUM | HIGH | CRITICAL
+# status      : active | draft | paused | expired
+# expires_at  : ISO-8601 (timed rules only)
+# ============================================================================
+
+version: 2
+
+rules:
+
+  # 1) Architecture work -> Powerful tier
+  - id: architecture_to_powerful
+    name: "Architecture → Powerful"
+    type: route
+    match_by: intent
+    match_value: { intent_id: architecture_design }
+    action: { route_to_tier: powerful }
+    scope: { agents: [all], workspaces: [all] }
+    priority: HIGH
+    status: active
+    description: Architecture decisions need deep reasoning.
+
+  # 2) Security keywords -> at least Standard tier
+  - id: security_keywords_boost
+    name: "Security keywords → Standard"
+    type: boost
+    match_by: keyword
+    match_value: { keywords: [security, vulnerability, cve, exploit, auth] }
+    action: { min_tier: standard }
+    scope: { agents: [all], workspaces: [all] }
+    priority: HIGH
+    status: active
+    description: Any prompt mentioning security gets at least Standard.
+
+  # 3) doc-writer agent -> never above Fast (cost control)
+  - id: docwriter_fast_only
+    name: "doc-writer → Fast only"
+    type: limit
+    match_by: agent
+    match_value: { agent: doc-writer }
+    action: { max_tier: fast }
+    scope: { agents: [doc-writer], workspaces: [all] }
+    priority: MEDIUM
+    status: active
+    description: Documentation work is cheap; cap it at Fast.
+
+  # 4) Active incident -> everything Powerful (TIME-BOUND, now a live window)
+  - id: incident_all_powerful
+    name: "Incident → all Powerful"
+    type: timed
+    match_by: workspace
+    match_value: { workspace: payment-service }
+    action: { route_to_tier: powerful }
+    scope: { agents: [all], workspaces: [payment-service] }
+    priority: CRITICAL
+    status: active
+    expires_at: "2026-12-31T23:59:59Z"   # FIXED: live window (was 2026-06-11, expired)
+    description: Active incident — max reasoning on all payment-service actions.
+
+  # 5) Codex agent -> redirect code generation to the coding-specialized model
+  #    REPLACES the old dangling image_gen_redirect rule.
+  - id: codex_redirect
+    name: "codex agent → gpt-5.3-codex"
+    type: redirect
+    match_by: agent
+    match_value: { agent: codex }
+    action: { redirect_to_model: gpt-5.3-codex }   # real id in models.yaml
+    scope: { agents: [codex], workspaces: [all] }
+    priority: MEDIUM
+    status: active
+    description: The codex agent pins to the coding-specialized model.
+
+  # 6) Long session -> long-context model
+  - id: long_session_boost
+    name: "Long session → long-context"
+    type: boost
+    match_by: session_size
+    match_value: { session_pct_of_window_gt: 70 }
+    action: { boost_to_long_context: true }
+    scope: { agents: [all], workspaces: [all] }
+    priority: HIGH
+    status: active
+    description: Big sessions route to the model with the most usable context.
+
+  # 7) Small talk -> never above Fast (don't burn a powerful model on "hi")
+  - id: smalltalk_fast_only
+    name: "Small talk → Fast only"
+    type: limit
+    match_by: intent
+    match_value: { intent_id: conversational }
+    action: { max_tier: fast }
+    scope: { agents: [all], workspaces: [all] }
+    priority: MEDIUM
+    status: active
+    description: Greetings / chit-chat are trivial; cap at Fast to save cost.
+
+  # 8) Math -> at least Standard (arithmetic on a fast model is error-prone)
+  - id: math_min_standard
+    name: "Math → at least Standard"
+    type: boost
+    match_by: keyword
+    match_value: { keywords: [calculate, solve, equation, derivative, integral] }
+    action: { min_tier: standard }
+    scope: { agents: [all], workspaces: [all] }
+    priority: MEDIUM
+    status: active
+    description: Quantitative work needs a reasoning-capable tier.
+
+  # --- Example draft (not active) ---------------------------------------
+  - id: nightly_cost_cap
+    name: "Nightly batch → cost cap"
+    type: cost_cap
+    match_by: workspace
+    match_value: { workspace: batch-jobs }
+    action: { max_cost_per_request_usd: 0.05 }
+    scope: { agents: [all], workspaces: [batch-jobs] }
+    priority: LOW
+    status: draft
+    description: Keep overnight batch work cheap (draft — not yet active).

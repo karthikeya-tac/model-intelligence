@@ -1,0 +1,64 @@
+# ============================================================================
+# selection.yaml — Level 2 model-selection policy (config-as-code)
+# ----------------------------------------------------------------------------
+# Level 1 picks a TIER. Level 2 picks WHICH model in that tier, by scoring every
+# candidate on  quality (capability-fit for the intent) × cost × latency, using
+# signals already in models.yaml. Switch `default_profile` (or pass --profile) to
+# change what the router optimises for.
+#
+#   score(model) = w_quality·quality + w_cost·cost + w_latency·latency   (each 0..1)
+#     quality = capability_scores[intent's dimension] / 100
+#     cost    = cheaper-is-higher, min-max normalised within the tier's candidates
+#     latency = latency_class mapped via latency_scores below
+# ============================================================================
+
+version: 1
+
+default_profile: balanced
+
+profiles:                         # weights are normalised at load, so they need not sum to 1
+  balanced: { quality: 0.50, cost: 0.30, latency: 0.20 }
+  quality:  { quality: 0.80, cost: 0.10, latency: 0.10 }
+  cost:     { quality: 0.25, cost: 0.65, latency: 0.10 }
+  latency:  { quality: 0.25, cost: 0.15, latency: 0.60 }
+
+# latency_class (from models.yaml) -> 0..1 score (higher = faster)
+latency_scores:
+  fastest: 1.00
+  faster:  0.85
+  fast:    0.80
+  adaptive: 0.60
+  moderate: 0.50
+  slower:  0.30
+  slowest: 0.10
+
+# blended price used for the cost term: input + output_weight * output  (per 1M)
+# output is weighted higher because most responses emit more output than input.
+output_weight: 3.0
+
+# intent_id -> capability_scores dimension (the "quality" signal for that intent)
+intent_capability:
+  code_generation: code_generation
+  code_review: code_review
+  code_formatting: code_generation
+  code_completion: code_generation
+  architecture_design: architecture
+  multi_step_planning: reasoning
+  impact_analysis: reasoning
+  documentation: documentation
+  summarisation: documentation
+  security_scanning: security_analysis
+  security_architecture_review: security_analysis
+  data_analysis: data_analysis
+  math_problem: math
+  creative_writing: documentation
+  factual_qa: reasoning
+  how_to_explanation: documentation
+  conversational: reasoning
+  translation: translation
+  default: reasoning              # used when intent is None / unmapped
+
+constraints:
+  allow_standby_as_failover: true # standby models are eligible only as fallback, never the top pick
+  long_context_min: 400000        # a long_session rule requires context_window >= this
+  default_output_tokens: 600      # assumed output length for budget (cost_cap) estimates

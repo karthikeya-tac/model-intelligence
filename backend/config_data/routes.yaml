@@ -1,0 +1,134 @@
+# ============================================================================
+# routes.yaml — the NEW file the semantic layer adds (Option A)
+# ----------------------------------------------------------------------------
+# Maps each intent_id -> a few GENERIC example "utterances". The encoder embeds
+# these once at boot; a request routes to the intent whose utterances are
+# closest in meaning. Route name == intent_id (1:1), feeding the intents.yaml
+# tier map.
+#
+# DESIGN RULE (important): these are generic, representative phrasings — written
+# WITHOUT looking at prompts.yaml. They must NOT mirror the test prompts, or the
+# eval is meaningless. The whole point of semantic routing is that it generalises
+# to unseen phrasings; the test prompts are held out.
+#
+# Cross-ref rule (validated at boot): every route name must be a real intent_id.
+# ============================================================================
+
+version: 2   # rewritten to be generic (de-overfit)
+
+routes:
+  code_generation:
+    - "write a function that sorts a list"
+    - "implement a class to manage users"
+    - "generate code to read a json file"
+    - "write a unit test for this function"
+    - "build a complete application for me"
+    - "write all the code for a new service"
+
+  code_review:
+    - "review this code for correctness"
+    - "check my implementation for mistakes"
+    - "give feedback on this pull request"
+    - "is this code well written?"
+
+  code_formatting:
+    - "reformat this file"
+    - "fix the linting issues"
+    - "clean up the code style"
+    - "apply consistent indentation"
+
+  code_completion:
+    - "complete this line of code"
+    - "finish this function"
+    - "autocomplete this snippet"
+
+  architecture_design:
+    - "design the architecture for a new system"
+    - "how should I structure these services?"
+    - "propose a high-level system design"
+    - "lay out the main components and how they connect"
+
+  multi_step_planning:
+    - "break this project into phases"
+    - "give me a step-by-step plan"
+    - "create a delivery roadmap with milestones"
+    - "plan how to ship this in stages"
+
+  impact_analysis:
+    - "what breaks if we change this?"
+    - "assess the downstream impact of this change"
+    - "which systems are affected by this update?"
+    - "what is the blast radius of this change?"
+
+  documentation:
+    - "write documentation for this api"
+    - "draft a readme"
+    - "document how this works"
+    - "write a usage guide"
+
+  summarisation:
+    - "summarize this text"
+    - "give me a short summary"
+    - "condense this into a few lines"
+    - "tldr of this document"
+
+  security_scanning:
+    - "scan this code for vulnerabilities"
+    - "check for security flaws and exploits"
+    - "look for injection or auth issues"
+    - "find security bugs in this snippet"
+
+  security_architecture_review:
+    - "review the security of this system design"
+    - "threat-model this architecture"
+    - "assess the trust boundaries of the system"
+    - "is this overall design secure?"
+
+  incident_response:
+    - "the system is down, help me debug"
+    - "we have a production outage"
+    - "things are broken in prod and I am not sure why"
+    - "urgent, the service is failing right now"
+
+  math_problem:
+    - "solve this equation"
+    - "calculate this for me"
+    - "what is the answer to this math problem"
+    - "compute this percentage"
+
+  creative_writing:
+    - "write a poem"
+    - "draft a marketing email"
+    - "write a short story"
+    - "compose a message for an occasion"
+
+  data_analysis:
+    - "analyze this dataset"
+    - "what trends are in this data?"
+    - "find insights in these numbers"
+    - "what does this data tell us?"
+
+  factual_qa:
+    - "who is this person?"
+    - "what is the capital of this country?"
+    - "when did this event happen?"
+    - "give me a quick fact about this"
+
+  how_to_explanation:
+    - "how do I do this?"
+    - "explain how this works"
+    - "what is the difference between these two things?"
+    - "why does this happen?"
+    - "what is this concept?"
+    - "what does this term mean?"
+
+  conversational:
+    - "hello"
+    - "thanks for the help"
+    - "how are you?"
+    - "can you help me with something?"
+
+  translation:
+    - "translate this text"
+    - "how do you say this in another language?"
+    - "convert this into french"

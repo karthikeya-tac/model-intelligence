@@ -1,0 +1,177 @@
+# ============================================================================
+#  niha — providers.yaml   (Phase-0 provider registry, config-as-code)
+# ----------------------------------------------------------------------------
+#  WHAT THIS IS
+#    The upstream providers niha calls, their connection + policy, and the full
+#    request-parameter surface each one exposes (`param_profile`). Models in
+#    models.yaml reference a provider by `id` and inherit that param vocabulary,
+#    so per-model `controls` only carry model-specific overrides.
+#
+#  SOURCE OF TRUTH
+#    Anthropic : claude model catalog/claude_control_params.txt
+#    OpenAI    : openai_models/openai_control_params.txt
+#    Google    : gemini_control_params.txt
+#
+#  SECRETS  (task P0-8 owns resolution)
+#    Keys are NEVER stored inline. `api_key_ref` holds an env-var reference of
+#    the exact form ${ENV_VAR}; P0-8 resolves it at call time, never logs it,
+#    and caches it per process. A literal secret string is rejected by the
+#    schema's ${...} pattern. Until the env var resolves, `status` is
+#    not_connected.
+#
+#  CONVENTIONS
+#    - id              : slug, the cross-ref target for models.yaml `provider`.
+#    - kind            : anthropic | openai | google | ollama | custom
+#    - role            : primary | fallback | secondary
+#    - api.style       : messages | responses | generateContent  (request shape)
+#    - param_profile   : the provider's API knobs (ranges/defaults/tool lists).
+#                        `locked_for: reasoning` marks knobs frozen on reasoning/
+#                        thinking models; per-model controls.sampling says which.
+# ============================================================================
+
+schema_version: "1.0.0"
+generated_at: "2026-06-09"
+
+providers:
+
+  - id: anthropic
+    name: Anthropic
+    kind: anthropic
+    role: primary
+    api:
+      base_url: https://api.anthropic.com
+      endpoint: /v1/messages
+      style: messages
+    auth:
+      api_key_ref: ${ANTHROPIC_API_KEY}
+      fallback_key_ref: null
+    rate_limit_rpm: null          # set per deployment (not catalog data)
+    rate_limit_tpm: null
+    status: not_connected
+    param_profile:
+      request_shape: messages
+      sampling:
+        # Deprecated for models released after Claude Opus 4.6 — then locked at 1.0.
+        temperature: { min: 0.0, max: 1.0, default: 1.0, deprecated_after: claude-opus-4-6 }
+        top_p:       { min: 0.0, max: 1.0, deprecated_after: claude-opus-4-6 }
+        top_k:       { min: 0, deprecated_after: claude-opus-4-6 }
+      reasoning:
+        thinking_type: [enabled, disabled, adaptive]
+        thinking_budget_tokens: { min: 1024 }
+        effort: { values: [low, medium, high], default: medium }
+      output:
+        max_tokens: { required: true }
+        format: [text, json_schema]
+        stop_sequences: true
+        stream: true
+      caching:
+        mechanism: cache_control
+        ttl: ["5m", "1h"]
+      service_tier: [auto, standard_only]
+      tools: [custom, bash, text_editor, code_execution, web_search, web_fetch, memory, tool_search]
+      metadata: { user_id: true }
+
+  - id: openai
+    name: OpenAI
+    kind: openai
+    role: secondary
+    api:
+      base_url: https://api.openai.com
+      endpoint: /v1/responses
+      style: responses            # reasoning models; non-reasoning may use /v1/chat/completions
+    auth:
+      api_key_ref: ${OPENAI_API_KEY}
+      fallback_key_ref: null
+    rate_limit_rpm: null
+    rate_limit_tpm: null
+    status: not_connected
+    param_profile:
+      request_shape: responses
+      reasoning:
+        effort: { values: [none, minimal, low, medium, high, xhigh], default: medium }
+        verbosity: { values: [low, medium, high], default: medium }
+      sampling:
+        # Locked at default on reasoning models (gpt-5.x); tunable on gpt-4.x.
+        temperature:       { min: 0.0, max: 2.0, default: 1.0, locked_for: reasoning }
+        top_p:             { min: 0.0, max: 1.0, default: 1.0, locked_for: reasoning }
+        frequency_penalty: { min: -2.0, max: 2.0, default: 0.0, locked_for: reasoning }
+        presence_penalty:  { min: -2.0, max: 2.0, default: 0.0, locked_for: reasoning }
+      output:
+        max_output_tokens: { min: 1 }
+        format: [text, json_object, json_schema]
+        stream: true
+        store: true
+        background: true
+        truncation: [disabled, auto]
+      sampling_extras:
+        n: { min: 1, max: 128, default: 1 }
+        seed: true
+        logprobs: true
+        top_logprobs: { min: 0, max: 20 }
+      caching:
+        mechanism: prompt_cache_key
+      service_tier: [auto, default, flex, priority]
+      tools: [function, web_search, file_search, code_interpreter, computer_use, image_gen, shell, mcp]
+      metadata: { user_id: true, max_pairs: 16 }
+
+  - id: google
+    name: Google (Gemini)
+    kind: google
+    role: secondary
+    api:
+      base_url: https://generativelanguage.googleapis.com
+      endpoint: /v1beta/models/{model}:generateContent
+      style: generateContent
+    auth:
+      api_key_ref: ${GEMINI_API_KEY}
+      fallback_key_ref: null
+    rate_limit_rpm: null
+    rate_limit_tpm: null
+    status: not_connected
+    param_profile:
+      request_shape: generateContent
+      sampling:
+        # NOT locked on thinking models (unlike OpenAI).
+        temperature: { min: 0.0, max: 2.0, default: 1.0 }
+        top_p:       { min: 0.0, max: 1.0, default: 0.95 }
+        top_k:       { min: 1, max: 40, default: 40 }
+      reasoning:
+        # thinkingConfig (thinking models only).
+        thinking_budget: { dynamic: -1, off: 0, flash_range: [0, 24576], pro_range: [128, 32768] }
+        include_thoughts: true
+      generation_config:
+        max_output_tokens: { min: 1 }
+        candidate_count: { min: 1, max: 8, default: 1 }
+        stop_sequences: { max: 5 }
+        response_mime_type: ["text/plain", "application/json", "text/x.enum"]
+        response_schema: true
+        response_modalities: [TEXT, IMAGE, AUDIO]
+        seed: true
+        media_resolution: [LOW, MEDIUM, HIGH]
+      tools: [function_declarations, google_search, code_execution, url_context]
+      function_calling_mode: [AUTO, ANY, NONE]
+      safety_settings: true
+      caching:
+        mechanism: cached_content
+      service_tier: true
+
+  # --------------------------------------------------------------------------
+  #  OTHER SUPPORTED KINDS (stubs — uncomment + fill to enable)
+  #  No catalog data exists for these, so they are left commented rather than
+  #  populated with placeholders.
+  # --------------------------------------------------------------------------
+  # - id: ollama
+  #   name: Ollama (self-hosted)
+  #   kind: ollama
+  #   role: secondary
+  #   api: { base_url: http://localhost:11434, endpoint: /api/chat, style: messages }
+  #   auth: { api_key_ref: null }        # local; no key
+  #   status: not_connected
+  #
+  # - id: my-gateway
+  #   name: Custom OpenAI-compatible gateway
+  #   kind: custom
+  #   role: secondary
+  #   api: { base_url: https://gateway.internal/v1, endpoint: /chat/completions, style: responses }
+  #   auth: { api_key_ref: ${CUSTOM_API_KEY} }   # base_url is REQUIRED for kind=custom
+  #   status: not_connected
