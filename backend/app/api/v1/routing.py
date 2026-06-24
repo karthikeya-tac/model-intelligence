@@ -15,8 +15,7 @@ def route(body: RouteRequest, engine=Depends(get_router), store=Depends(get_stor
           tele=Depends(get_telemetry)):
     d = engine.route(
         prompt=body.prompt, intent_id=body.intent_id, agent=body.agent,
-        workspace=body.workspace, session_tokens=body.session_tokens,
-        profile=body.profile, step=body.step,
+        workspace=body.workspace, session_tokens=body.session_tokens, step=body.step,
     )
     # record telemetry with the chosen model's simulated cost/latency
     cost, latency = 0.0, 0

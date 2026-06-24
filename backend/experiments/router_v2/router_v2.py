@@ -1,13 +1,12 @@
-"""RouterService — the hybrid 2-layer router behind POST /route (EP15) and /console/ask.
+"""router_v2 — the candidate query→model router (experiment).
 
-Level 1 : classify prompt → top-k intents (embedding-first MiniLM, keyword fallback)
-          → query difficulty (features.py) × intent.complexity → base tier (difficulty.py)
-          → deterministic rules → min_tier floor → confidence-aware escalation.
-Level 2 : ScoringSelector scores the models in the final tier on a multi-dimension capability
-          need-vector (fused from the top-k intents) → best pick + failover order.
+Pipeline: classify (embedding-first, top-k) → difficulty×complexity tier → deterministic rules
+→ min_tier floor → uncertainty gate (escalate/widen) → multi-dimension Level-2 pick. Returns the
+SAME decision shape as the live engine (plus additive fields) so the compare harness is
+apples-to-apples and a later promotion into app/routing is a drop-in.
 
-Reads LIVE state from the store (rules, intent tier overrides) so edits take effect immediately.
-Catalog facts + the selection policy (selection.yaml) are reloaded on refresh().
+Reuses the live Store/Registry (same catalog) and ports the live deterministic rule resolution so
+tier decisions differ ONLY because of the new query-aware layers, not because rules went missing.
 """
 from __future__ import annotations
 
@@ -17,10 +16,12 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from app.routing.selector import Features
+
 from .classifier import IntentClassifier
 from .difficulty import TIER_RANK, effective_tier
 from .features import difficulty_score, extract_features
-from .selector import Features, ScoringSelector
+from .selector_v2 import MultiDimSelector
 
 PRIORITY_RANK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 NEXT_TIER = {"fast": "standard", "standard": "powerful", "powerful": "powerful"}
@@ -31,38 +32,23 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-class RouterService:
-    def __init__(self, store, *, selection_path: Path, routes_path: Path, semantic: bool = True):
+class RouterV2:
+    def __init__(self, store, *, config_path: Path, routes_path: Path):
         self.store = store
-        self._selection_path = Path(selection_path)
-        self._routes_path = Path(routes_path)
-        self._semantic = semantic
-        self.refresh()
-
-    # rebuild catalog views + policy + classifier from the (possibly reloaded) snapshot/config
-    def refresh(self) -> None:
-        reg = self.store.registry
-        self._models = [m.model_dump(mode="json") for m in reg.models]
-        self._cfg = yaml.safe_load(self._selection_path.read_text(encoding="utf-8")) or {}
-        self.selector = ScoringSelector(self._selection_path)
-        cls_cfg = dict(self._cfg.get("classifier", {}) or {})
-        if not self._semantic:
-            cls_cfg = {**cls_cfg, "semantic": {**(cls_cfg.get("semantic", {}) or {}), "enabled": False}}
-        self.classifier = IntentClassifier(reg.intents, self._routes_path, cls_cfg)
+        self.cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8")) or {}
+        self._models = [m.model_dump(mode="json") for m in store.registry.models]
+        self.classifier = IntentClassifier(store.registry.intents, routes_path, self.cfg.get("classifier", {}))
+        self.selector = MultiDimSelector(self.cfg)
         self._tier_window = {}
         for t in ("fast", "standard", "powerful"):
-            wins = [m["capability"]["context_window"] for m in self._models
-                    if m["classification"]["tier"] == t]
+            wins = [m["capability"]["context_window"] for m in self._models if m["classification"]["tier"] == t]
             self._tier_window[t] = max(wins) if wins else 200000
 
     @property
     def classifier_mode(self) -> str:
         return self.classifier.mode
 
-    def classify(self, prompt: str) -> Dict[str, Any]:
-        return self.classifier.classify(prompt)
-
-    # ----- rule matching ----------------------------------------------------
+    # ---- rules (ported deterministic resolution) ----
     def _rule_matches(self, r, prompt, intent_id, agent, workspace, session_pct) -> bool:
         if r.get("status") != "active":
             return False
@@ -83,38 +69,39 @@ class RouterService:
             return session_pct is not None and thr is not None and session_pct > thr
         return False
 
-    # ----- the route --------------------------------------------------------
+    # ---- the route ----
     def route(self, *, prompt: Optional[str] = None, intent_id: Optional[str] = None,
               agent: Optional[str] = None, workspace: Optional[str] = None,
-              session_tokens: Optional[int] = None, step: Optional[str] = None) -> Dict[str, Any]:
+              session_tokens: Optional[int] = None) -> Dict[str, Any]:
         notes: List[str] = []
 
         # 1. classify (embedding-first, top-k)
         if intent_id:
-            source, confidence, intents_topk = "explicit", 1.0, [(intent_id, 1.0)]
+            source, confidence, margin = "explicit", 1.0, 1.0
+            intents_topk = [(intent_id, 1.0)]
         elif prompt:
-            c = self.classify(prompt)
-            intent_id, source, confidence, intents_topk = c["intent_id"], c["source"], c["confidence"], c["intents"]
+            c = self.classifier.classify(prompt)
+            intent_id, source, confidence, margin = c["intent_id"], c["source"], c["confidence"], c["margin"]
+            intents_topk = c["intents"]
         else:
-            source, confidence, intents_topk = "none", 0.0, []
+            source, confidence, margin, intents_topk = "none", 0.0, 0.0, []
 
         intent_obj = self.store.registry.intent(intent_id) if intent_id else None
-        tiers = self.store.intent_tier(intent_id) if intent_id else {}
-        base_tier = tiers.get("default_tier", "standard")
-        min_tier = tiers.get("min_tier", "fast")
+        base_tier = intent_obj.default_tier.value if intent_obj else "standard"
+        min_tier = intent_obj.min_tier.value if intent_obj else "fast"
         complexity = intent_obj.complexity if intent_obj else None
 
-        # 2. query features + difficulty → tier (difficulty × complexity, raise-only)
+        # 2. query features + difficulty
         feats = extract_features(prompt or "", intent_matched=intent_id is not None)
-        diff = difficulty_score(feats, self._cfg.get("difficulty", {}))
-        tier, dnotes = effective_tier(base_tier, complexity, diff, self._cfg)
+        diff = difficulty_score(feats, self.cfg.get("difficulty", {}))
+
+        # 3. difficulty × complexity → tier (raise-only vs intent default)
+        tier, dnotes = effective_tier(base_tier, complexity, diff, self.cfg)
         notes.extend(dnotes)
 
-        session_pct = None
-        if session_tokens:
-            session_pct = round(session_tokens / max(1, self._tier_window.get(tier, 200000)) * 100, 1)
+        session_pct = round(session_tokens / max(1, self._tier_window.get(tier, 200000)) * 100, 1) if session_tokens else None
 
-        # 3. deterministic rules
+        # 4. deterministic rules (same as baseline)
         applied: List[dict] = []
         route_tier: Optional[str] = None
         boosts: List[str] = []
@@ -148,28 +135,23 @@ class RouterService:
             if TIER_RANK[tier] > TIER_RANK[t]:
                 tier = t
 
-        # 4. architect mode (plan→powerful, exec→fast/standard)
-        arch = self.store.settings("architect_mode")
-        if arch.get("enabled") and step in ("plan", "exec"):
-            tier = arch["plan_tier"] if step == "plan" else arch["exec_tier"]
-            notes.append(f"architect-mode {step} → {tier}")
-
         # 5. min_tier floor
         if TIER_RANK[tier] < TIER_RANK.get(min_tier, 0):
-            tier = min_tier
-            notes.append(f"raised to min_tier {min_tier}")
+            tier, _ = min_tier, notes.append(f"raised to min_tier {min_tier}")
 
-        # 6. confidence-aware escalation
-        esc = self._cfg.get("escalation", {}) or {}
+        # 6. uncertainty gate
+        esc = self.cfg.get("escalation", {}) or {}
         escalated, pool_tiers = False, [tier]
-        if esc.get("enabled", True) and not route_tier:
-            lo, hi = esc.get("borderline_difficulty", [1.1, 1.2])
-            if (confidence < esc.get("low_confidence", 0.28)) or (lo <= diff <= hi):
+        if esc.get("enabled", True) and not route_tier:   # an explicit route rule wins over escalation
+            lo, hi = esc.get("borderline_difficulty", [0.30, 0.42])
+            borderline = lo <= diff <= hi
+            if (confidence < esc.get("low_confidence", 0.45)) or borderline:
                 capped = limits and min(limits, key=lambda t: TIER_RANK[t])
                 raised = NEXT_TIER[tier]
-                if (not capped or TIER_RANK[raised] <= TIER_RANK[capped]) and TIER_RANK[raised] > TIER_RANK[tier]:
-                    tier = raised
-                    notes.append(f"escalated (conf {confidence:.2f}, diff {diff:.2f})")
+                if not capped or TIER_RANK[raised] <= TIER_RANK[capped]:
+                    if TIER_RANK[raised] > TIER_RANK[tier]:
+                        tier = raised
+                        notes.append(f"escalated (conf {confidence:.2f}, diff {diff:.2f})")
                 escalated = True
                 if esc.get("widen_pool", True):
                     pool_tiers = sorted({tier, NEXT_TIER[tier]}, key=lambda t: TIER_RANK[t])
@@ -177,7 +159,7 @@ class RouterService:
         # 7. fuse top-k intents → need-vector
         need = self._fuse_need(intents_topk)
 
-        # 8. Level-2 model pick
+        # 8. Level-2 pick (redirect short-circuits if the target exists)
         est_in = max(1, len(prompt or "") // CHARS_PER_TOKEN) + (session_tokens or 0)
         feats2 = Features(min_context=400000 if long_context else 0, est_input_tokens=est_in, est_output_tokens=600)
         redirect_hit = next((x for x in self._models if x["id"] == redirect_model), None) if redirect_model else None
@@ -195,7 +177,7 @@ class RouterService:
             provider = top.provider if top else None
             candidates = [{"model_id": r.model, "provider": r.provider, "score": r.score,
                            "quality": r.quality, "cost": r.cost, "latency": r.latency,
-                           "available": r.available} for r in ranked[:5]]
+                           "available": r.available, "note": r.note} for r in ranked[:5]]
 
         reason = self._reason(intent_id, source, base_tier, tier, applied, chosen, candidates, diff, notes)
         return {
@@ -203,16 +185,18 @@ class RouterService:
             "base_tier": base_tier, "tier": tier, "model_id": chosen, "provider": provider,
             "matched_rules": applied, "candidates": candidates, "session_pct": session_pct,
             "escalated": escalated, "reason": reason,
+            # --- additive (router_v2) ---
             "intents": [{"intent_id": i, "confidence": c} for i, c in intents_topk],
-            "difficulty": diff,
+            "difficulty": diff, "need_vector": need, "features": feats.as_dict(),
+            "classifier_mode": self.classifier_mode,
         }
 
     def _fuse_need(self, intents_topk) -> Dict[str, float]:
-        dims_map = self._cfg.get("intent_dimensions", {}) or {}
+        dims_map = self.cfg.get("intent_dimensions", {}) or {}
         if not intents_topk:
             return self.selector.resolve_dimensions(None)
         top_conf = intents_topk[0][1]
-        sec_margin = float((self._cfg.get("classifier", {}).get("semantic", {}) or {}).get("secondary_margin", 0.2))
+        sec_margin = float((self.cfg.get("classifier", {}).get("semantic", {}) or {}).get("secondary_margin", 0.2))
         need: Dict[str, float] = {}
         for iid, conf in intents_topk:
             if conf < top_conf - sec_margin:
@@ -222,7 +206,8 @@ class RouterService:
         return need or self.selector.resolve_dimensions(intents_topk[0][0])
 
     def _reason(self, intent_id, source, base_tier, tier, applied, chosen, candidates, diff, notes) -> str:
-        bits = [f"intent={intent_id or 'unknown'} ({source})", f"difficulty={diff:.2f}",
+        bits = [f"intent={intent_id or 'unknown'} ({source})",
+                f"difficulty={diff:.2f}",
                 f"tier={base_tier}" + (f"→{tier}" if tier != base_tier else "")]
         if applied:
             bits.append("rules: " + ", ".join(a["rule_id"] for a in applied))

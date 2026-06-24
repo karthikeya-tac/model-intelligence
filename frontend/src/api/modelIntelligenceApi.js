@@ -253,25 +253,10 @@ export async function routeRequest(body) {
   return request('/api/v1/route', { method: 'POST', body: JSON.stringify(body) });
 }
 
-// The Console: one call → chosen model + all its info + estimate + (live output if a key is set)
+// The Console: one call → chosen model + all its info + estimate + (live output if a key is set).
+// Routing is a single quality-first policy — no profile/weights to pass.
 export async function consoleAsk(body) {
   return request('/api/v1/console/ask', { method: 'POST', body: JSON.stringify(body) });
-}
-
-// fit badges are computed client-side from compare results (no backend call needed)
-export async function getFitBadges(prompt, results) {
-  const maxCost = Math.max(...results.map((x) => x.cost_usd));
-  const minCost = Math.min(...results.map((x) => x.cost_usd));
-  const maxValue = Math.max(...results.map((x) => x.value_score));
-  return results.map((r) => {
-    let fit;
-    if (r.value_score === maxValue && r.cost_usd === minCost) fit = 'sweet-spot';
-    else if (r.value_score < (maxValue * 0.7)) fit = 'underpowered';
-    else if (r.cost_usd === maxCost && r.value_score < maxValue) fit = 'overkill';
-    else if (r.value_score >= (maxValue * 0.92)) fit = 'good-fit';
-    else fit = 'acceptable';
-    return { model_id: r.model_id, fit };
-  });
 }
 
 // --------------------------------------------------------------------------- //

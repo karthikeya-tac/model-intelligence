@@ -5,5 +5,6 @@ pydantic>=2,<3
 PyYAML>=6
 numpy>=1.26
 
-# Optional — only needed when SEMANTIC=1 (embedding Level-1 classifier):
-# sentence-transformers>=2.2
+# Embedding Level-1 classifier (default; SEMANTIC=1). Set SEMANTIC=0 to run keyword-only
+# without this dependency.
+sentence-transformers>=2.2

@@ -32,11 +32,12 @@ def _flag(name: str, default: str = "0") -> bool:
 class Settings:
     config_dir: str = os.environ.get("NIHA_CONFIG_DIR", str(BACKEND_DIR / "config_data"))
     registry_mode: str = os.environ.get("REGISTRY_MODE", "file")        # file | db (UI write-gate)
-    semantic: bool = _flag("SEMANTIC", "0")                              # embedding L1 (needs sentence-transformers)
+    semantic: bool = _flag("SEMANTIC", "1")                              # embedding L1 default (set 0 for keyword-only)
     cors_origins = os.environ.get(
         "CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"
     ).split(",")
     exec_timeout: int = int(os.environ.get("NIHA_EXEC_TIMEOUT", "20"))   # live provider-call timeout (s)
+    max_tokens: int = int(os.environ.get("NIHA_MAX_TOKENS", "2048"))     # max output tokens for live calls
     # Phase-0 runs SINGLE-WORKER (in-memory overlay is per-process). Read the common
     # worker-count envs so we can warn at startup if someone scales out by accident.
     worker_count: int = int(os.environ.get("WEB_CONCURRENCY") or os.environ.get("UVICORN_WORKERS") or "1")

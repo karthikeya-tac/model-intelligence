@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { consoleAsk, getIntents } from '../api/modelIntelligenceApi';
 
-const PROFILES = [['balanced', 'Balanced'], ['quality', 'Quality'], ['cost', 'Cost'], ['latency', 'Latency']];
 const PROVIDER = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', xai: 'xAI', ollama: 'Ollama' };
 const tc = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
@@ -9,7 +8,6 @@ const lat = (ms) => (ms == null ? '—' : ms >= 1000 ? `${(ms / 1000).toFixed(1)
 
 export default function Console() {
   const [prompt, setPrompt] = useState('');
-  const [profile, setProfile] = useState('balanced');
   const [showOpts, setShowOpts] = useState(false);
   const [agent, setAgent] = useState('');
   const [workspace, setWorkspace] = useState('');
@@ -28,7 +26,7 @@ export default function Console() {
     if (!prompt.trim() || loading) return;
     setLoading(true); setError(''); setResult(null); setShowWhy(false);
     try {
-      const body = { prompt, profile, execute: true };
+      const body = { prompt, execute: true };
       if (agent) body.agent = agent;
       if (workspace) body.workspace = workspace;
       if (sessionTokens) body.session_tokens = Number(sessionTokens);
@@ -56,11 +54,7 @@ export default function Console() {
         <textarea rows={2} value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={onKey}
           placeholder="e.g. write a function to dedupe a list… (⌘/Ctrl + Enter)" />
         <div className="nx-cmd-bar">
-          <div className="nx-segments">
-            {PROFILES.map(([id, label]) => (
-              <button key={id} className={profile === id ? 'on' : ''} onClick={() => setProfile(id)}>{label}</button>
-            ))}
-          </div>
+          <span className="nx-mini" style={{ alignSelf: 'center' }}>Auto-routes to the best model for your question</span>
           <button className="nx-opts-toggle" onClick={() => setShowOpts(o => !o)}>{showOpts ? '− options' : '+ options'}</button>
           <button className="nx-ask" onClick={ask} disabled={loading || !prompt.trim()}>
             {loading ? 'Routing…' : 'Ask'}<span>→</span>
@@ -145,14 +139,12 @@ function Result({ result, showWhy, setShowWhy }) {
               <div key={c.model_id} className={`nx-cand ${c.model_id === d.model_id ? 'win' : ''}`}>
                 <span className="name">{c.model_id}</span>
                 <span className="nx-bars">
-                  <i title="quality" style={{ width: `${(c.quality || 0) * 60}px` }} />
-                  <i className="c" title="cost" style={{ width: `${(c.cost || 0) * 60}px` }} />
-                  <i className="l" title="latency" style={{ width: `${(c.latency || 0) * 60}px` }} />
+                  <i title="capability fit" style={{ width: `${(c.quality || 0) * 130}px` }} />
                 </span>
-                <span className="sc">{(c.score ?? 0).toFixed(2)}</span>
+                <span className="sc">{Math.round((c.quality ?? 0) * 100)}</span>
               </div>
             ))}
-            <div className="nx-mini">bars: quality · cost · latency (per the “{d.profile}” profile)</div>
+            <div className="nx-mini">ranked by capability fit for this intent (0–100) · ties broken by cost then latency</div>
           </div>
         )}
       </div>

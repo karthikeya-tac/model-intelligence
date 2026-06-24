@@ -31,22 +31,23 @@ It has two halves that talk over one HTTP API:
 
 A prompt travels through **two layers**:
 
-1. **Level 1 — what kind of work is this?**
-   Classify the prompt → an **intent** (e.g. `code_generation`). Each intent has a default
-   **tier** (`fast` / `standard` / `powerful`) and a minimum floor. **Rules** can then override
-   the tier (e.g. *security keywords → at least standard*, *architecture → powerful*,
-   *incident on payment-service → powerful*).
+1. **Level 1 — what kind of work is this, and how hard?**
+   Classify the prompt into the top **intents** (embedding-first, MiniLM) and measure a
+   **difficulty** score from the text; combine difficulty with the intent's `complexity` to pick a
+   **tier** (`fast`/`standard`/`powerful`). **Rules** can override it, a `min_tier` floor applies,
+   and low-confidence queries are **escalated**. The same intent routes *harder* questions higher.
 
 2. **Level 2 — which model in that tier is best?**
-   Score every model in the tier on **quality × cost × latency** (weighted by the chosen
-   *profile*) and pick the winner, with a **failover** chain behind it.
+   Score models on a **multi-dimension capability fit** (a need-vector fused from the top-k intents,
+   matched against each model's real `capability_scores`) — quality-first; cost/latency only break
+   near-ties — with a **failover** chain behind it.
 
 Then it **estimates** cost/latency and, if a key is configured, returns a **live answer** from
 the provider's nearest real model.
 
 **Example:** `"design a fault-tolerant payment architecture"` →
 intent `architecture_design` → rule `architecture_to_powerful` → tier `powerful` →
-Level-2 pick `gpt-5.3-codex`.
+Level-2 pick `claude-opus-4-8` (highest capability fit for the intent).
 
 ---
 

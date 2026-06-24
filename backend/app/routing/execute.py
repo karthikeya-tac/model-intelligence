@@ -31,8 +31,9 @@ STANDIN = {
     ("google", "powerful"): "gemini-1.5-pro",
 }
 
-MAX_TOKENS = 512
+MAX_TOKENS = settings.max_tokens  # configurable via NIHA_MAX_TOKENS (default 2048)
 TIMEOUT = settings.exec_timeout   # seconds; configurable via NIHA_EXEC_TIMEOUT (default 20)
+SYSTEM = "You are an expert assistant. Answer accurately, completely, and clearly."
 
 
 def standin_model(provider_kind: str, tier: str) -> Optional[str]:
@@ -48,14 +49,17 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any]) -> Dict[str, 
 def _call_anthropic(model, prompt, key):
     data = _post("https://api.anthropic.com/v1/messages",
                  {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": MAX_TOKENS, "messages": [{"role": "user", "content": prompt}]})
+                 {"model": model, "max_tokens": MAX_TOKENS, "system": SYSTEM,
+                  "messages": [{"role": "user", "content": prompt}]})
     return data["content"][0]["text"]
 
 
 def _call_openai(model, prompt, key):
     data = _post("https://api.openai.com/v1/chat/completions",
                  {"Authorization": f"Bearer {key}", "content-type": "application/json"},
-                 {"model": model, "max_tokens": MAX_TOKENS, "messages": [{"role": "user", "content": prompt}]})
+                 {"model": model, "max_tokens": MAX_TOKENS,
+                  "messages": [{"role": "system", "content": SYSTEM},
+                               {"role": "user", "content": prompt}]})
     return data["choices"][0]["message"]["content"]
 
 
@@ -64,7 +68,8 @@ def _call_google(model, prompt, key):
     # proxy/access logs and error traces.
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     data = _post(url, {"content-type": "application/json", "x-goog-api-key": key},
-                 {"contents": [{"parts": [{"text": prompt}]}]})
+                 {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                  "contents": [{"parts": [{"text": prompt}]}]})
     return data["candidates"][0]["content"]["parts"][0]["text"]
 
 

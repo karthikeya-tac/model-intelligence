@@ -1,0 +1,204 @@
+<mxfile host="65bd71144e">
+    <diagram id="p1" name="Architecture &amp; Flow">
+        <mxGraphModel dx="950" dy="482" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="p1_title" value="router_v2 — query-aware model selection · architecture &amp; request flow" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_q" value="&lt;b&gt;Query&lt;/b&gt; (prompt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="76" width="580" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_b" value="&lt;b&gt;① classify · classifier.py&lt;/b&gt;&lt;br&gt;embedding-first: MiniLM (all-MiniLM-L6-v2) vs routes.yaml utterances&lt;br&gt;cosine → softmax(T=0.08) → top-k intents + calibrated confidence&lt;br&gt;sim_floor 0.25 · keyword fallback (loud) if model unavailable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="128" width="580" height="92" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_a" value="&lt;b&gt;② features · features.py&lt;/b&gt;&lt;br&gt;QueryFeatures: code/math/multi-step/constraints/ambiguity (regex, no model)&lt;br&gt;difficulty = clamp01( Σ wᵢ · norm(signalᵢ) )   →  0..1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="236" width="580" height="74" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_c" value="&lt;b&gt;③ tier · difficulty.py&lt;/b&gt;&lt;br&gt;eff_complexity = clamp(1..5, intent.complexity + Δ(difficulty))&lt;br&gt;complexity_tier_map {1-2:fast · 3:standard · 4-5:powerful}&lt;br&gt;RAISE-ONLY vs intent.default_tier (easy phrasing never demotes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="326" width="580" height="92" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_rules" value="&lt;b&gt;④ rules + min_tier floor&lt;/b&gt; (ported deterministic resolution)&lt;br&gt;route/timed sets base → strongest boost → strongest limit → min_tier floor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="434" width="580" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_d" value="&lt;b&gt;⑤ uncertainty gate&lt;/b&gt;  confidence &amp;lt; 0.28 → escalate +1 tier (capped by limits) · set escalated=true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=middle;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="510" width="580" height="56" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_e" value="&lt;b&gt;⑥ Level-2 · selector_v2.py — MultiDimSelector(ModelSelector)&lt;/b&gt;&lt;br&gt;need = Σ confᵢ · intent_dimensions[intentᵢ]   (normalized vector)&lt;br&gt;quality = need · capability_scores / 100   (missing dims dropped + renormalized)&lt;br&gt;cost/latency only break ties within ε = 0.05  → pick + failover order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="582" width="580" height="104" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_f" value="&lt;b&gt;⑦ enriched decision · router_v2.py&lt;/b&gt;&lt;br&gt;model · tier · candidates[] · reason  +  difficulty · features · top-k intents&lt;br&gt;(reserved outcome slot = training signal for a future learned router)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="702" width="580" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_reuse" value="&lt;b&gt;REUSES — no fork of the live engine&lt;/b&gt;&lt;br&gt;&lt;br&gt;• app.routing.selector: ModelSelector ABC · Ranked · Features&lt;br&gt;• Store / Registry  (same catalog, apples-to-apples)&lt;br&gt;• models.yaml → real capability_scores (12 dims)&lt;br&gt;• intents.yaml → complexity (now USED) + keywords&lt;br&gt;• routes.yaml → semantic utterances&lt;br&gt;• config.yaml → all policy knobs (tunable by eval)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="128" width="560" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_cfg" value="&lt;b&gt;GUARDRAILS&lt;/b&gt;&lt;br&gt;&lt;br&gt;• NO FABRICATION — quality ← real capability_scores only&lt;br&gt;• difficulty ← computed from the query text (not invented)&lt;br&gt;• benchmarks.standard → eval/display only, never imputed into routing&lt;br&gt;• DETERMINISTIC — same query ⇒ same decision&lt;br&gt;• decision shape == live engine (additive fields) ⇒ drop-in promotion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#604827;dashed=1;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="446" width="560" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_q" target="p1_b" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_b" target="p1_a" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_a" target="p1_c" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_c" target="p1_rules" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_rules" target="p1_d" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_d" target="p1_e" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="p1_e" target="p1_f" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;dashed=1;strokeColor=#6BB8B1;" parent="1" source="p1_reuse" target="p1_e" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="p2" name="Before vs After">
+        <mxGraphModel dx="950" dy="482" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="p2_title" value="What changed — CURRENT (baseline) vs CANDIDATE (router_v2)" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_lh" value="&lt;b&gt;CURRENT · app/routing/engine.py&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECE9E5;strokeColor=#8A8580;align=center;fontColor=#3A3633;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="70" width="560" height="34" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_l1" value="classify: KEYWORD substring · single intent · confidence hard-coded 0.6 / 0.8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8A8580;align=left;spacingLeft=10;fontColor=#3A3633;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="112" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_l2" value="tier: STATIC intent.default_tier  ·  the complexity field is IGNORED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8A8580;align=left;spacingLeft=10;fontColor=#3A3633;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="178" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_l3" value="Level-2: quality = capability_scores[ ONE dimension ] / 100  ·  cost/latency tie-break" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8A8580;align=left;spacingLeft=10;fontColor=#3A3633;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="244" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_l4" value="no difficulty · no escalation · no multi-intent  (escalated is always false)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8A8580;align=left;spacingLeft=10;fontColor=#3A3633;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="310" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_rh" value="&lt;b&gt;CANDIDATE · experiments/router_v2&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=center;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="70" width="560" height="34" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_r1" value="&lt;b&gt;① embedding-first + multi-intent&lt;/b&gt;&lt;br&gt;MiniLM embeddings · softmax-calibrated · top-k intents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=4;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="112" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_r2" value="&lt;b&gt;② difficulty × complexity → tier&lt;/b&gt;&lt;br&gt;query difficulty + the (now used) complexity field · raise-only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=4;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="178" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_r3" value="&lt;b&gt;③ multi-dimension scoring&lt;/b&gt;&lt;br&gt;quality = need-VECTOR · capability_scores (fuses top-k intents)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=4;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="244" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_r4" value="&lt;b&gt;④ confidence escalation + clean seam&lt;/b&gt;&lt;br&gt;escalate when unsure · ModelSelector ABC + enriched telemetry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=4;spacingLeft=10;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="310" width="560" height="58" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2m1" style="edgeStyle=none;html=1;endArrow=block;dashed=1;strokeColor=#E8C25E;" parent="1" source="p2_l1" target="p2_r1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2m2" style="edgeStyle=none;html=1;endArrow=block;dashed=1;strokeColor=#E8C25E;" parent="1" source="p2_l2" target="p2_r2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2m3" style="edgeStyle=none;html=1;endArrow=block;dashed=1;strokeColor=#E8C25E;" parent="1" source="p2_l3" target="p2_r3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2m4" style="edgeStyle=none;html=1;endArrow=block;dashed=1;strokeColor=#E8C25E;" parent="1" source="p2_l4" target="p2_r4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_added" value="&lt;b&gt;What we added — experiments/router_v2/&lt;/b&gt;&lt;br&gt;features.py · difficulty.py · classifier.py · selector_v2.py · router_v2.py · config.yaml&lt;br&gt;eval/ (dataset.yaml · oracle.py · run_compare.py) · ask.py (ask once, see BOTH routers) · tests/ · README.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="420" width="1200" height="92" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_note" value="Baseline is UNTOUCHED — the candidate reuses the same Store/Registry/catalog and the same ModelSelector ABC, so the comparison is apples-to-apples and promotion is a drop-in selector swap." style="text;html=1;align=left;fontColor=#6B6560;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="528" width="1200" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="p3" name="Pros · Cons · Tech · Results">
+        <mxGraphModel dx="950" dy="482" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="840" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="p3_title" value="router_v2 — pros, cons, tech &amp; measured results" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_pros" value="&lt;b&gt;PROS&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Query-AWARE: difficulty separates easy vs hard within the SAME intent&lt;br&gt;• Intent accuracy 0.31 → 0.69 · calibrated confidence · multi-intent&lt;br&gt;• Multi-dimension scoring → genuinely &amp;quot;best for the job&amp;quot;&lt;br&gt;• Deterministic + no fabrication (real capability_scores only)&lt;br&gt;• Clean ModelSelector seam → learned router later; enriched telemetry&lt;br&gt;• Isolated experiment + measurable compare harness + CI gate (--check)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF6EE;strokeColor=#2E8F58;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="76" width="590" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_cons" value="&lt;b&gt;CONS / TRADE-OFFS&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Adds an embedding dep (sentence-transformers + MiniLM load at boot)&lt;br&gt;• Softmax confidence over ~19 intents runs low → needs calibration&lt;br&gt;• tier within-one 0.97 → 0.92 (a few queries hit powerful-default intents)&lt;br&gt;• Difficulty is heuristic — misses jargon (LRU/thread-safe) without more cues&lt;br&gt;• Eval set is small (36 cases) → expand before trusting absolute numbers&lt;br&gt;• Not promoted to live yet · learned-router reward (outcome) still null" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBECEC;strokeColor=#D24343;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="76" width="580" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_tech" value="&lt;b&gt;TECH ACTUALLY USED&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Python · FastAPI app reused (Store / Registry)&lt;br&gt;• sentence-transformers — all-MiniLM-L6-v2 (semantic intent)&lt;br&gt;• numpy — cosine similarity + softmax calibration&lt;br&gt;• PyYAML — config.yaml + eval dataset&lt;br&gt;• stdlib + regex — deterministic features/difficulty (NO model)&lt;br&gt;• pytest — unit + determinism tests&lt;br&gt;• reuses app.routing.selector: ModelSelector ABC · Ranked · Features" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="400" width="590" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_res" value="&lt;b&gt;RESULTS — 36 held-out cases  (baseline → candidate)&lt;/b&gt;&lt;br&gt;&lt;br&gt;intent accuracy        0.31 → 0.69&lt;br&gt;intent top-k recall    0.31 → 0.83&lt;br&gt;tier exact             0.33 → 0.64&lt;br&gt;tier within-one        0.97 → 0.92&lt;br&gt;min-tier floor         0.97 → 1.00&lt;br&gt;oracle model match     0.03 → 0.31&lt;br&gt;mean quality           0.82 → 0.90&lt;br&gt;mean quality regret    0.12 → 0.03&lt;br&gt;&lt;br&gt;run:  python -m experiments.router_v2.eval.run_compare" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=8;spacingLeft=12;fontColor=#604827;fontFamily=Courier New;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="400" width="580" height="320" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+  <diagram id="p4" name="How it works (step by step)">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p4_title" value="How the new engine works — step by step" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/></mxCell>
+        <mxCell id="p4_two" value="&lt;b&gt;The engine answers two questions:&lt;/b&gt;&amp;nbsp;&amp;nbsp; ①  How big a model does this need?  →  a TIER&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; ②  Which model is best for THIS task?  →  a MODEL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;verticalAlign=middle;spacingLeft=12;fontColor=#0E3F3A;" vertex="1" parent="1"><mxGeometry x="60" y="58" width="1180" height="50" as="geometry"/></mxCell>
+
+        <mxCell id="p4_s1" value="&lt;b&gt;1 · Understand the question&lt;/b&gt;&amp;nbsp; (classifier.py)&lt;br&gt;Reads the MEANING with embeddings (MiniLM) — not just keywords.&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; the top few likely intents + how confident it is." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="128" width="740" height="74" as="geometry"/></mxCell>
+        <mxCell id="p4_s2" value="&lt;b&gt;2 · Measure how hard it is&lt;/b&gt;&amp;nbsp; (features.py)&lt;br&gt;Scans the words: length, code, math, multi-step, constraints, vagueness.&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; a difficulty score from 0 to 1." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="214" width="740" height="74" as="geometry"/></mxCell>
+        <mxCell id="p4_s3" value="&lt;b&gt;3 · Choose the tier&lt;/b&gt;&amp;nbsp; (difficulty.py)&lt;br&gt;Combines difficulty with the intent's built-in complexity (1–5).&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; the tier — hard→higher, easy→lower (never demotes serious work)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" vertex="1" parent="1"><mxGeometry x="60" y="300" width="740" height="78" as="geometry"/></mxCell>
+        <mxCell id="p4_s4" value="&lt;b&gt;4 · Apply rules&lt;/b&gt;&lt;br&gt;Overrides like &amp;quot;architecture → powerful&amp;quot; or &amp;quot;security → at least standard&amp;quot;.&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; the rule-adjusted tier." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="390" width="740" height="70" as="geometry"/></mxCell>
+        <mxCell id="p4_s5" value="&lt;b&gt;5 · Safety net&lt;/b&gt;&lt;br&gt;Enforce the minimum tier; if the intent was unclear, bump up one tier.&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; the FINAL tier (and whether it escalated)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="472" width="740" height="74" as="geometry"/></mxCell>
+        <mxCell id="p4_s6" value="&lt;b&gt;6 · Pick the best model&lt;/b&gt;&amp;nbsp; (selector_v2.py)&lt;br&gt;Builds &amp;quot;the skills THIS query needs&amp;quot;, then matches it against each model's&lt;br&gt;REAL skill scores (0–100). Cost/latency only break near-ties.&lt;br&gt;&lt;b&gt;Finds:&lt;/b&gt; the best-fit model (+ backups for failover)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" vertex="1" parent="1"><mxGeometry x="60" y="558" width="740" height="92" as="geometry"/></mxCell>
+        <mxCell id="p4_s7" value="&lt;b&gt;7 · Answer&lt;/b&gt;&amp;nbsp; (router_v2.py)&lt;br&gt;&lt;b&gt;Finds / returns:&lt;/b&gt; the chosen model, the tier, and a plain reason why." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#0E3F3A;" vertex="1" parent="1"><mxGeometry x="60" y="662" width="740" height="62" as="geometry"/></mxCell>
+
+        <mxCell id="p4_gloss" value="&lt;b&gt;Plain-English glossary&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Intent&lt;/b&gt; — the KIND of task (code review, math, translation…)&lt;br&gt;&lt;br&gt;&lt;b&gt;Tier&lt;/b&gt; — how heavy a model: fast · standard · powerful&lt;br&gt;&lt;br&gt;&lt;b&gt;Difficulty&lt;/b&gt; — a 0–1 measure of how hard the query is, from its words&lt;br&gt;&lt;br&gt;&lt;b&gt;Confidence&lt;/b&gt; — how sure it is about the intent&lt;br&gt;&lt;br&gt;&lt;b&gt;capability_scores&lt;/b&gt; — each model's real 0–100 skill ratings (from the catalog)&lt;br&gt;&lt;br&gt;&lt;b&gt;Need-vector&lt;/b&gt; — the mix of skills THIS query needs&lt;br&gt;&lt;br&gt;&lt;b&gt;Best fit&lt;/b&gt; — the model whose skills best match the need-vector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#604827;" vertex="1" parent="1"><mxGeometry x="830" y="128" width="410" height="596" as="geometry"/></mxCell>
+
+        <mxCell id="p4e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s1" target="p4_s2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s2" target="p4_s3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s3" target="p4_s4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s4" target="p4_s5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s5" target="p4_s6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p4_s6" target="p4_s7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="p5" name="Worked example">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p5_title" value="Worked example — one question through all 7 steps" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/></mxCell>
+        <mxCell id="p5_q" value="&lt;b&gt;Example query:&lt;/b&gt;&amp;nbsp; &amp;quot;review this auth handler for injection and broken access control&amp;quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;align=left;verticalAlign=middle;spacingLeft=12;fontColor=#604827;" vertex="1" parent="1"><mxGeometry x="60" y="58" width="1180" height="44" as="geometry"/></mxCell>
+
+        <mxCell id="p5_t1" value="&lt;b&gt;1 · Understand&lt;/b&gt; → intents:  security_scanning (0.55)  +  code_review (0.35)  ·  confident" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="122" width="740" height="54" as="geometry"/></mxCell>
+        <mxCell id="p5_t2" value="&lt;b&gt;2 · Difficulty&lt;/b&gt; → about 0.40  (security terms + a constraint word, short)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="188" width="740" height="54" as="geometry"/></mxCell>
+        <mxCell id="p5_t3" value="&lt;b&gt;3 · Tier&lt;/b&gt; → standard  (security intent + moderate difficulty)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="254" width="740" height="54" as="geometry"/></mxCell>
+        <mxCell id="p5_t4" value="&lt;b&gt;4 · Rules&lt;/b&gt; → the security-keywords rule keeps it at ≥ standard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="320" width="740" height="54" as="geometry"/></mxCell>
+        <mxCell id="p5_t5" value="&lt;b&gt;5 · Safety net&lt;/b&gt; → confident, so no escalation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="60" y="386" width="740" height="54" as="geometry"/></mxCell>
+        <mxCell id="p5_t6" value="&lt;b&gt;6 · Best model&lt;/b&gt; → need = {security_analysis 0.6, code_review 0.4}&lt;br&gt;→ picks the standard model with the highest COMBINED security + review score" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;fontColor=#604827;" vertex="1" parent="1"><mxGeometry x="60" y="452" width="740" height="64" as="geometry"/></mxCell>
+        <mxCell id="p5_t7" value="&lt;b&gt;7 · Answer&lt;/b&gt; → &amp;quot;model X · standard · fit 0.91 · because security_scanning + code_review&amp;quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;align=left;spacingLeft=10;fontColor=#0E3F3A;" vertex="1" parent="1"><mxGeometry x="60" y="528" width="740" height="54" as="geometry"/></mxCell>
+
+        <mxCell id="p5_oldnew" value="&lt;b&gt;Old vs New (same query)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Understand:&amp;nbsp; keyword guess  →  meaning + top-k&lt;br&gt;&lt;br&gt;How hard:&amp;nbsp;&amp;nbsp;&amp;nbsp; not measured  →  difficulty 0.40&lt;br&gt;&lt;br&gt;Tier:&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; static per intent  →  query-aware&lt;br&gt;&lt;br&gt;Pick model:&amp;nbsp; best at 1 skill  →  best at the BLEND&lt;br&gt;&lt;br&gt;Unsure?:&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; nothing  →  escalate to a stronger model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;fontColor=#1E1C1A;" vertex="1" parent="1"><mxGeometry x="830" y="122" width="410" height="320" as="geometry"/></mxCell>
+        <mxCell id="p5_note" value="The old engine would keyword-match ONE intent, send it to a fixed tier, and score on ONE skill — so it could pick a strong coder that's weak at security." style="text;html=1;align=left;fontColor=#6B6560;fontSize=12;" vertex="1" parent="1"><mxGeometry x="830" y="456" width="410" height="80" as="geometry"/></mxCell>
+
+        <mxCell id="p5e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t1" target="p5_t2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t2" target="p5_t3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t3" target="p5_t4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t4" target="p5_t5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t5" target="p5_t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="p5_t6" target="p5_t7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

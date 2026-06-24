@@ -22,7 +22,7 @@ router = APIRouter(tags=["console"])
 def ask(body: ConsoleAsk, engine=Depends(get_router), store=Depends(get_store), tele=Depends(get_telemetry)):
     decision = engine.route(
         prompt=body.prompt, intent_id=body.intent_id, agent=body.agent,
-        workspace=body.workspace, session_tokens=body.session_tokens, profile=body.profile,
+        workspace=body.workspace, session_tokens=body.session_tokens,
     )
     model = store.registry.model(decision.get("model_id")) if decision.get("model_id") else None
     model_detail = model_view(model, store) if model else None

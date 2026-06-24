@@ -169,13 +169,11 @@ class RouteRequest(BaseModel):
     agent: Optional[str] = None
     workspace: Optional[str] = None
     session_tokens: Optional[int] = None
-    profile: Optional[str] = None      # quality|balanced|cost|latency (Level-2 weight set)
     step: Optional[str] = None         # plan|exec (Architect Mode)
 
 
 class ConsoleAsk(BaseModel):
     prompt: str
-    profile: Optional[str] = None       # quality|balanced|cost|latency
     agent: Optional[str] = None
     workspace: Optional[str] = None
     session_tokens: Optional[int] = None
@@ -190,10 +188,13 @@ class RouteResponse(BaseModel):
     reason: str
     intent_id: Optional[str] = None
     intent_source: Optional[str] = None
+    confidence: Optional[float] = None
     base_tier: Optional[str] = None
     candidates: List[Dict[str, Any]] = Field(default_factory=list)
     escalated: bool = False
-    profile: Optional[str] = None
+    difficulty: Optional[float] = None                          # query-aware difficulty (0..1)
+    intents: List[Dict[str, Any]] = Field(default_factory=list)  # top-k intents + confidence
+    session_pct: Optional[float] = None
 
 
 class TestSingle(BaseModel):

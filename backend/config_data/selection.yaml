@@ -1,29 +1,21 @@
 # ============================================================================
-# selection.yaml — Level 2 model-selection policy (config-as-code)
+# selection.yaml — routing policy (config-as-code), Level-1 tier + Level-2 model.
 # ----------------------------------------------------------------------------
-# Level 1 picks a TIER. Level 2 picks WHICH model in that tier, by scoring every
-# candidate on  quality (capability-fit for the intent) × cost × latency, using
-# signals already in models.yaml. Switch `default_profile` (or pass --profile) to
-# change what the router optimises for.
-#
-#   score(model) = w_quality·quality + w_cost·cost + w_latency·latency   (each 0..1)
-#     quality = capability_scores[intent's dimension] / 100
-#     cost    = cheaper-is-higher, min-max normalised within the tier's candidates
-#     latency = latency_class mapped via latency_scores below
+# QUERY-AWARE + QUALITY-FIRST (no user-selectable profiles):
+#   • Level 1: query difficulty (from the text) × intent.complexity → base tier,
+#     then rules + min_tier floor + confidence-aware escalation.
+#   • Level 2: quality = need-vector · capability_scores / 100, where the need-vector
+#     is fused from the top-k intents. Cost then latency only break NEAR-TIES.
+# All numbers here are POLICY knobs (like quality_tie_epsilon) — model quality itself
+# comes only from the real capability_scores in models.yaml (no fabrication).
 # ============================================================================
 
-version: 1
+version: 3
 
-default_profile: balanced
-
-profiles:                         # weights are normalised at load, so they need not sum to 1
-  balanced: { quality: 0.50, cost: 0.30, latency: 0.20 }
-  quality:  { quality: 0.80, cost: 0.10, latency: 0.10 }
-  cost:     { quality: 0.25, cost: 0.65, latency: 0.10 }
-  latency:  { quality: 0.25, cost: 0.15, latency: 0.60 }
-
-# latency_class (from models.yaml) -> 0..1 score (higher = faster)
-latency_scores:
+# ---- Level-2 cost/latency tie-break ----
+quality_tie_epsilon: 0.05        # models within this capability gap are a tie → cheaper/faster wins
+output_weight: 3.0               # blended price = input + output_weight * output (per 1M)
+latency_scores:                  # latency_class (models.yaml) -> 0..1 (higher = faster)
   fastest: 1.00
   faster:  0.85
   fast:    0.80
@@ -32,33 +24,68 @@ latency_scores:
   slower:  0.30
   slowest: 0.10
 
-# blended price used for the cost term: input + output_weight * output  (per 1M)
-# output is weighted higher because most responses emit more output than input.
-output_weight: 3.0
+# ---- Level-1 difficulty (computed from the query in features.py) ----
+difficulty:
+  weights: {length: 0.15, multistep: 0.25, constraints: 0.20, code: 0.10, math: 0.10, ambiguity: 0.20}
+  length_saturation_tokens: 600
+  multistep_saturation: 3
+  constraint_saturation: 3
+  delta_bands: [[0.25, -1], [0.65, 0], [0.85, 1]]   # difficulty -> complexity delta
+  delta_high: 2
+complexity_tier_map: {1: fast, 2: fast, 3: standard, 4: powerful, 5: powerful}
+allow_demote: false              # difficulty may RAISE tier above intent.default_tier, never lower it
 
-# intent_id -> capability_scores dimension (the "quality" signal for that intent)
+# ---- Level-1 classifier (embedding-first; keyword fallback) ----
+classifier:
+  semantic:
+    enabled: true
+    model: sentence-transformers/all-MiniLM-L6-v2
+    temperature: 0.08            # softmax temperature for cosine -> confidence
+    sim_floor: 0.25              # below this top cosine, treat as OOD -> keyword fallback
+    margin: 0.04
+    top_k: 3
+    secondary_margin: 0.20       # fold a secondary intent into L2 if within this confidence of the top
+    low_confidence: 0.28         # below this top-intent confidence -> escalate
+  keyword:
+    base_confidence: 0.5
+
+# ---- confidence-aware escalation ----
+escalation:
+  enabled: true
+  low_confidence: 0.28
+  borderline_difficulty: [1.10, 1.20]   # effectively disabled; confidence is the trigger
+  raise_by: 1
+  widen_pool: true
+
+# ---- Level-2 capability blend: intent -> {dimension: weight} (real capability_scores keys) ----
+intent_dimensions:
+  code_generation: {code_generation: 0.8, reasoning: 0.2}
+  code_review: {code_review: 0.7, reasoning: 0.2, security_analysis: 0.1}
+  code_formatting: {code_generation: 1.0}
+  code_completion: {code_generation: 1.0}
+  architecture_design: {architecture: 0.6, reasoning: 0.4}
+  multi_step_planning: {reasoning: 0.7, architecture: 0.3}
+  impact_analysis: {reasoning: 0.6, architecture: 0.4}
+  math_problem: {math: 0.8, reasoning: 0.2}
+  documentation: {documentation: 1.0}
+  summarisation: {documentation: 0.7, reasoning: 0.3}
+  creative_writing: {documentation: 0.6, reasoning: 0.4}
+  security_scanning: {security_analysis: 0.8, code_review: 0.2}
+  security_architecture_review: {security_analysis: 0.6, architecture: 0.25, reasoning: 0.15}
+  data_analysis: {data_analysis: 0.8, reasoning: 0.2}
+  incident_response: {reasoning: 0.5, code_review: 0.3, security_analysis: 0.2}
+  factual_qa: {reasoning: 1.0}
+  how_to_explanation: {documentation: 0.6, reasoning: 0.4}
+  conversational: {reasoning: 1.0}
+  translation: {translation: 1.0}
+  default: {reasoning: 1.0}
+
+# single-dimension fallback (used only if an intent is missing from intent_dimensions)
 intent_capability:
-  code_generation: code_generation
-  code_review: code_review
-  code_formatting: code_generation
-  code_completion: code_generation
-  architecture_design: architecture
-  multi_step_planning: reasoning
-  impact_analysis: reasoning
-  documentation: documentation
-  summarisation: documentation
-  security_scanning: security_analysis
-  security_architecture_review: security_analysis
-  data_analysis: data_analysis
-  math_problem: math
-  creative_writing: documentation
-  factual_qa: reasoning
-  how_to_explanation: documentation
-  conversational: reasoning
-  translation: translation
-  default: reasoning              # used when intent is None / unmapped
+  default: reasoning
 
 constraints:
-  allow_standby_as_failover: true # standby models are eligible only as fallback, never the top pick
-  long_context_min: 400000        # a long_session rule requires context_window >= this
-  default_output_tokens: 600      # assumed output length for budget (cost_cap) estimates
+  allow_standby_as_failover: true
+  default_latency_score: 0.5
+  long_context_min: 400000
+  default_output_tokens: 600

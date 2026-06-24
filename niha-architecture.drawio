@@ -1,133 +1,132 @@
-<mxfile host="app.diagrams.net" version="24.0.0">
-  <diagram id="arch" name="Architecture &amp; Layers">
-    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <mxCell id="title" value="Niha — Model Intelligence · Architecture (Phase 0: config-as-code, no database)" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="60" y="20" width="900" height="30" as="geometry" />
-        </mxCell>
-
-        <!-- FRONTEND band -->
-        <mxCell id="feband" value="&lt;b&gt;FRONTEND&amp;nbsp; · React 19 + Vite&amp;nbsp; (:5173)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="60" y="70" width="820" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="fe_console" value="&lt;b&gt;Console&lt;/b&gt;&lt;br&gt;centered command bar&lt;br&gt;prompt → routed model · why · answer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" vertex="1" parent="1">
-          <mxGeometry x="90" y="110" width="360" height="75" as="geometry" />
-        </mxCell>
-        <mxCell id="fe_config" value="&lt;b&gt;Configure&lt;/b&gt;&lt;br&gt;Catalog · Intents · Providers · Context · Compare · Activity&lt;br&gt;(all data via src/api/modelIntelligenceApi.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" vertex="1" parent="1">
-          <mxGeometry x="470" y="110" width="380" height="75" as="geometry" />
-        </mxCell>
-
-        <!-- API band -->
-        <mxCell id="apiband" value="&lt;b&gt;API LAYER&amp;nbsp; · app/api/v1 (FastAPI routers, prefix /api/v1)&lt;/b&gt;&lt;br&gt;&lt;br&gt;console&amp;nbsp;·&amp;nbsp;models&amp;nbsp;·&amp;nbsp;intents&amp;nbsp;·&amp;nbsp;rules&amp;nbsp;·&amp;nbsp;routing&amp;nbsp;·&amp;nbsp;test&lt;br&gt;providers&amp;nbsp;·&amp;nbsp;settings&amp;nbsp;·&amp;nbsp;context&amp;nbsp;·&amp;nbsp;registry&amp;nbsp;·&amp;nbsp;meta (/health, /)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="60" y="250" width="820" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- ENGINE band -->
-        <mxCell id="engband" value="&lt;b&gt;ROUTING ENGINE&amp;nbsp; · app/routing&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="60" y="400" width="820" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="l1" value="&lt;b&gt;Level 1 — engine.py&lt;/b&gt;&lt;br&gt;classify prompt → intent&lt;br&gt;intent → tier (min-tier floor)&lt;br&gt;apply rules: route/boost/limit/redirect/cost_cap/timed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="90" y="445" width="360" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="l2" value="&lt;b&gt;Level 2 — selector.py&lt;/b&gt;&lt;br&gt;score models in the tier:&lt;br&gt;quality × cost × latency (by profile)&lt;br&gt;→ pick winner + failover order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="470" y="445" width="380" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="engaux" value="sim.py → deterministic cost/latency/value estimate&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;execute.py → live provider call (STANDIN map, if key)&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;telemetry.py → stats/usage/audit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6BB8B1;fontColor=#1E1C1A;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="90" y="555" width="760" height="40" as="geometry" />
-        </mxCell>
-
-        <!-- DATA ACCESS band -->
-        <mxCell id="databand" value="&lt;b&gt;DATA ACCESS&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="60" y="650" width="820" height="120" as="geometry" />
-        </mxCell>
-        <mxCell id="store" value="&lt;b&gt;store/file_store.py&lt;/b&gt;&lt;br&gt;immutable snapshot + in-memory overlay&lt;br&gt;audit log · atomic reload (bad file keeps old)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" vertex="1" parent="1">
-          <mxGeometry x="90" y="690" width="360" height="65" as="geometry" />
-        </mxCell>
-        <mxCell id="registry" value="&lt;b&gt;registry/ loader.py + schema.py&lt;/b&gt;&lt;br&gt;parse → validate (Pydantic, no unknown keys)&lt;br&gt;cross-ref checks · fail-fast with file+line" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" vertex="1" parent="1">
-          <mxGeometry x="470" y="690" width="380" height="65" as="geometry" />
-        </mxCell>
-
-        <!-- YAML band -->
-        <mxCell id="yamlband" value="&lt;b&gt;SOURCE OF TRUTH&amp;nbsp; · config_data/*.yaml&lt;/b&gt;&lt;br&gt;&lt;br&gt;models.yaml (29)&amp;nbsp;·&amp;nbsp;providers.yaml (3)&amp;nbsp;·&amp;nbsp;intents.yaml (19)&amp;nbsp;·&amp;nbsp;rules.yaml (9)&amp;nbsp;·&amp;nbsp;routes.yaml&amp;nbsp;·&amp;nbsp;selection.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#604827;verticalAlign=top;fontColor=#604827;spacingTop=8;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="810" width="820" height="70" as="geometry" />
-        </mxCell>
-
-        <!-- SERVICES side -->
-        <mxCell id="services" value="&lt;b&gt;SERVICES · app/services&lt;/b&gt;&lt;br&gt;&lt;br&gt;secrets.py&lt;br&gt;resolves ${ENV_VAR} refs&lt;br&gt;(returns a hint, never a key)&lt;br&gt;&lt;br&gt;health.py&lt;br&gt;provider health (simulated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="920" y="400" width="220" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="boot" value="&lt;b&gt;app/main.py&lt;/b&gt;&lt;br&gt;lifespan builds Store + Router&lt;br&gt;+ Telemetry ONCE at boot&lt;br&gt;CORS · request-id/timing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" vertex="1" parent="1">
-          <mxGeometry x="920" y="650" width="220" height="120" as="geometry" />
-        </mxCell>
-
-        <!-- edges -->
-        <mxCell id="e1" value="HTTP JSON" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;fontColor=#0E3F3A;fontSize=11;" edge="1" parent="1" source="feband" target="apiband"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="apiband" target="engband"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="engband" target="databand"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="e4" value="loaded at boot / reload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=none;html=1;strokeColor=#604827;fontColor=#604827;fontSize=11;dashed=1;" edge="1" parent="1" source="yamlband" target="databand"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#6BB8B1;dashed=1;" edge="1" parent="1" source="services" target="engband"><mxGeometry relative="1" as="geometry" /></mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-
-  <diagram id="flow" name="Request Journey">
-    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <mxCell id="ft" value="One request through the 2-layer router  ·  POST /api/v1/console/ask" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" vertex="1" parent="1">
-          <mxGeometry x="60" y="20" width="1000" height="30" as="geometry" />
-        </mxCell>
-
-        <!-- row 1 -->
-        <mxCell id="s1" value="&lt;b&gt;1 · Ask&lt;/b&gt;&lt;br&gt;User types a prompt in the Console and picks a profile (balanced/quality/cost/latency)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="60" y="100" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s2" value="&lt;b&gt;2 · Call&lt;/b&gt;&lt;br&gt;POST /api/v1/console/ask&lt;br&gt;{ prompt, profile, … }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;fontColor=#604827;" vertex="1" parent="1">
-          <mxGeometry x="350" y="100" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s3" value="&lt;b&gt;3 · Level 1: classify&lt;/b&gt;&lt;br&gt;prompt → intent (e.g. code_generation)&lt;br&gt;→ base tier + min-tier floor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="640" y="100" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s4" value="&lt;b&gt;4 · Level 1: rules&lt;/b&gt;&lt;br&gt;apply matching rules by priority&lt;br&gt;→ final tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="930" y="100" width="250" height="90" as="geometry" />
-        </mxCell>
-
-        <!-- row 2 (right to left) -->
-        <mxCell id="s5" value="&lt;b&gt;5 · Level 2: select&lt;/b&gt;&lt;br&gt;score models in the tier&lt;br&gt;quality × cost × latency&lt;br&gt;→ pick + failover" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="930" y="280" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s6" value="&lt;b&gt;6 · Estimate&lt;/b&gt;&lt;br&gt;sim.py → cost / latency / value&lt;br&gt;(deterministic, no network)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="640" y="280" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s7" value="&lt;b&gt;7 · Live answer (optional)&lt;/b&gt;&lt;br&gt;execute.py → real provider call&lt;br&gt;via STANDIN model (only if a key is set)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="350" y="280" width="250" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="s8" value="&lt;b&gt;8 · Show&lt;/b&gt;&lt;br&gt;Console renders: model · tier · why (intent/rules/candidates) · output · cost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;fontColor=#0E3F3A;" vertex="1" parent="1">
-          <mxGeometry x="60" y="280" width="250" height="90" as="geometry" />
-        </mxCell>
-
-        <!-- example + legend -->
-        <mxCell id="ex" value="&lt;b&gt;Example&lt;/b&gt;&amp;nbsp; &amp;quot;design a fault-tolerant payment architecture&amp;quot;&amp;nbsp; →&amp;nbsp; intent architecture_design&amp;nbsp; →&amp;nbsp; rule architecture_to_powerful&amp;nbsp; →&amp;nbsp; tier powerful&amp;nbsp; →&amp;nbsp; pick gpt-5.3-codex" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;fontColor=#604827;align=left;spacingLeft=12;" vertex="1" parent="1">
-          <mxGeometry x="60" y="430" width="1120" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="leg" value="&lt;b&gt;Tiers&lt;/b&gt;: fast · standard · powerful&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;Rule types&lt;/b&gt;: route · boost · limit · redirect · cost_cap · timed&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;Profiles&lt;/b&gt;: balanced · quality · cost · latency" style="text;html=1;fontColor=#1E1C1A;align=left;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="60" y="500" width="1120" height="30" as="geometry" />
-        </mxCell>
-
-        <!-- edges -->
-        <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s1" target="s2"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s2" target="s3"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s3" target="s4"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s4" target="s5"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s5" target="s6"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s6" target="s7"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" edge="1" parent="1" source="s7" target="s8"><mxGeometry relative="1" as="geometry" /></mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram id="arch" name="Architecture &amp; Layers">
+        <mxGraphModel dx="1376" dy="460" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Niha — Model Intelligence · Architecture (Phase 0: config-as-code, no database)" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="20" width="900" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="feband" value="&lt;b&gt;FRONTEND&amp;nbsp; · React 19 + Vite&amp;nbsp; (:5173)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="70" width="820" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="fe_console" value="&lt;b&gt;Console&lt;/b&gt;&lt;br&gt;centered command bar&lt;br&gt;prompt → routed model · why · answer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="90" y="110" width="360" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="fe_config" value="&lt;b&gt;Configure&lt;/b&gt;&lt;br&gt;Catalog · Intents · Providers · Context · Compare · Activity&lt;br&gt;(all data via src/api/modelIntelligenceApi.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="110" width="380" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="apiband" value="&lt;b&gt;API LAYER&amp;nbsp; · app/api/v1 (FastAPI routers, prefix /api/v1)&lt;/b&gt;&lt;br&gt;&lt;br&gt;console&amp;nbsp;·&amp;nbsp;models&amp;nbsp;·&amp;nbsp;intents&amp;nbsp;·&amp;nbsp;rules&amp;nbsp;·&amp;nbsp;routing&amp;nbsp;·&amp;nbsp;test&lt;br&gt;providers&amp;nbsp;·&amp;nbsp;settings&amp;nbsp;·&amp;nbsp;context&amp;nbsp;·&amp;nbsp;registry&amp;nbsp;·&amp;nbsp;meta (/health, /)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="250" width="820" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="engband" value="&lt;b&gt;ROUTING ENGINE&amp;nbsp; · app/routing&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="400" width="820" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="l1" value="&lt;b&gt;Level 1 — engine.py&lt;/b&gt;&lt;br&gt;classify prompt → intent&lt;br&gt;intent → tier (min-tier floor)&lt;br&gt;apply rules: route/boost/limit/redirect/cost_cap/timed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="90" y="445" width="360" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="l2" value="&lt;b&gt;Level 2 — selector.py&lt;/b&gt;&lt;br&gt;score models in the tier:&lt;br&gt;quality × cost × latency (by profile)&lt;br&gt;→ pick winner + failover order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="445" width="380" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="engaux" value="sim.py → deterministic cost/latency/value estimate&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;execute.py → live provider call (STANDIN map, if key)&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp;telemetry.py → stats/usage/audit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6BB8B1;fontColor=#1E1C1A;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="90" y="555" width="760" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="databand" value="&lt;b&gt;DATA ACCESS&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;verticalAlign=top;fontColor=#0E3F3A;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="650" width="820" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="store" value="&lt;b&gt;store/file_store.py&lt;/b&gt;&lt;br&gt;immutable snapshot + in-memory overlay&lt;br&gt;audit log · atomic reload (bad file keeps old)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="90" y="690" width="360" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="registry" value="&lt;b&gt;registry/ loader.py + schema.py&lt;/b&gt;&lt;br&gt;parse → validate (Pydantic, no unknown keys)&lt;br&gt;cross-ref checks · fail-fast with file+line" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2B7A72;fontColor=#1E1C1A;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="690" width="380" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="yamlband" value="&lt;b&gt;SOURCE OF TRUTH&amp;nbsp; · config_data/*.yaml&lt;/b&gt;&lt;br&gt;&lt;br&gt;models.yaml (29)&amp;nbsp;·&amp;nbsp;providers.yaml (3)&amp;nbsp;·&amp;nbsp;intents.yaml (19)&amp;nbsp;·&amp;nbsp;rules.yaml (9)&amp;nbsp;·&amp;nbsp;routes.yaml&amp;nbsp;·&amp;nbsp;selection.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#604827;verticalAlign=top;fontColor=#604827;spacingTop=8;dashed=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="810" width="820" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="services" value="&lt;b&gt;SERVICES · app/services&lt;/b&gt;&lt;br&gt;&lt;br&gt;secrets.py&lt;br&gt;resolves ${ENV_VAR} refs&lt;br&gt;(returns a hint, never a key)&lt;br&gt;&lt;br&gt;health.py&lt;br&gt;provider health (simulated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="400" width="220" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="boot" value="&lt;b&gt;app/main.py&lt;/b&gt;&lt;br&gt;lifespan builds Store + Router&lt;br&gt;+ Telemetry ONCE at boot&lt;br&gt;CORS · request-id/timing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;verticalAlign=top;fontColor=#604827;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="650" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="HTTP JSON" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;fontColor=#0E3F3A;fontSize=11;" parent="1" source="feband" target="apiband" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="apiband" target="engband" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="engband" target="databand" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="loaded at boot / reload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=none;html=1;strokeColor=#604827;fontColor=#604827;fontSize=11;dashed=1;" parent="1" source="yamlband" target="databand" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;strokeColor=#6BB8B1;dashed=1;" parent="1" source="services" target="engband" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="flow" name="Request Journey">
+        <mxGraphModel dx="1876" dy="627" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="ft" value="One request through the 2-layer router  ·  POST /api/v1/console/ask" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#0E3F3A;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="20" width="1000" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="s1" value="&lt;b&gt;1 · Ask&lt;/b&gt;&lt;br&gt;User types a prompt in the Console and picks a profile (balanced/quality/cost/latency)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="100" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s2" value="&lt;b&gt;2 · Call&lt;/b&gt;&lt;br&gt;POST /api/v1/console/ask&lt;br&gt;{ prompt, profile, … }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9EE;strokeColor=#E8C25E;fontColor=#604827;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="100" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s3" value="&lt;b&gt;3 · Level 1: classify&lt;/b&gt;&lt;br&gt;prompt → intent (e.g. code_generation)&lt;br&gt;→ base tier + min-tier floor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="100" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s4" value="&lt;b&gt;4 · Level 1: rules&lt;/b&gt;&lt;br&gt;apply matching rules by priority&lt;br&gt;→ final tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="100" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s5" value="&lt;b&gt;5 · Level 2: select&lt;/b&gt;&lt;br&gt;score models in the tier&lt;br&gt;quality × cost × latency&lt;br&gt;→ pick + failover" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1EAE7;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="280" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s6" value="&lt;b&gt;6 · Estimate&lt;/b&gt;&lt;br&gt;sim.py → cost / latency / value&lt;br&gt;(deterministic, no network)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="280" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s7" value="&lt;b&gt;7 · Live answer (optional)&lt;/b&gt;&lt;br&gt;execute.py → real provider call&lt;br&gt;via STANDIN model (only if a key is set)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F1EE;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="280" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s8" value="&lt;b&gt;8 · Show&lt;/b&gt;&lt;br&gt;Console renders: model · tier · why (intent/rules/candidates) · output · cost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5F3;strokeColor=#2B7A72;fontColor=#0E3F3A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="280" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex" value="&lt;b&gt;Example&lt;/b&gt;&amp;nbsp; &amp;quot;design a fault-tolerant payment architecture&amp;quot;&amp;nbsp; →&amp;nbsp; intent architecture_design&amp;nbsp; →&amp;nbsp; rule architecture_to_powerful&amp;nbsp; →&amp;nbsp; tier powerful&amp;nbsp; →&amp;nbsp; pick gpt-5.3-codex" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF5E2;strokeColor=#E8C25E;fontColor=#604827;align=left;spacingLeft=12;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="430" width="1120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg" value="&lt;b&gt;Tiers&lt;/b&gt;: fast · standard · powerful&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;Rule types&lt;/b&gt;: route · boost · limit · redirect · cost_cap · timed&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;Profiles&lt;/b&gt;: balanced · quality · cost · latency" style="text;html=1;fontColor=#1E1C1A;align=left;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="500" width="1120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s1" target="s2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s2" target="s3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s3" target="s4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s4" target="s5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s5" target="s6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s6" target="s7" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;html=1;strokeColor=#0E3F3A;" parent="1" source="s7" target="s8" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>

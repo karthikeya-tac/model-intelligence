@@ -1,0 +1,48 @@
+# ============================================================================
+# Held-out routing eval set. Phrasings are intentionally DIFFERENT from
+# routes.yaml utterances and intents.yaml keywords (we test generalization, not
+# memorization — run_compare.py --check fails if overlap is high).
+#
+# Per case: query · intent (gold) · intent_alt (acceptable alternates) ·
+#           tier (ideal) · min_tier (hard floor for soft scoring).
+# Tiers reflect DIFFICULTY on purpose (same intent, different difficulty → different
+# ideal tier) — that's exactly what the candidate should get right and the baseline can't.
+# ============================================================================
+version: 1
+cases:
+  - {id: ev-001, query: "add a helper that returns the larger of two integers", intent: code_generation, tier: fast, min_tier: fast}
+  - {id: ev-002, query: "build a thread-safe LRU cache with TTL eviction and full tests, must stay correct under concurrent access", intent: code_generation, tier: powerful, min_tier: standard}
+  - {id: ev-003, query: "take a look at my merge sort and tell me if anything is off", intent: code_review, intent_alt: [code_generation], tier: standard, min_tier: fast}
+  - {id: ev-004, query: "go over this 800-line payment module and flag correctness and concurrency defects, be thorough", intent: code_review, tier: powerful, min_tier: standard}
+  - {id: ev-005, query: "tidy up the indentation and quote style in this file", intent: code_formatting, tier: fast, min_tier: fast}
+  - {id: ev-006, query: "fill in the rest of this for-loop body", intent: code_completion, tier: fast, min_tier: fast}
+  - {id: ev-007, query: "lay out how to structure a multi-tenant billing platform across several services", intent: architecture_design, tier: powerful, min_tier: standard}
+  - {id: ev-008, query: "sketch a simple component layout for a tiny link-shortener", intent: architecture_design, tier: powerful, min_tier: standard}
+  - {id: ev-009, query: "map out a phased rollout to migrate our monolith to services over two quarters with milestones", intent: multi_step_planning, tier: powerful, min_tier: standard}
+  - {id: ev-010, query: "if we switch the user identifier from an int to a uuid, what across the stack is affected?", intent: impact_analysis, tier: powerful, min_tier: standard}
+  - {id: ev-011, query: "what is 15 percent of 240?", intent: math_problem, tier: fast, min_tier: fast}
+  - {id: ev-012, query: "find every real root of 2x^3 - 4x^2 + x - 7 and walk through the steps", intent: math_problem, tier: powerful, min_tier: fast}
+  - {id: ev-013, query: "draft a getting-started section for our command-line tool", intent: documentation, tier: fast, min_tier: fast}
+  - {id: ev-014, query: "give me the gist of this release note in two sentences", intent: summarisation, tier: fast, min_tier: fast}
+  - {id: ev-015, query: "pen a short limerick about debugging at 2am", intent: creative_writing, tier: standard, min_tier: fast}
+  - {id: ev-016, query: "check this login handler snippet for injection problems", intent: security_scanning, intent_alt: [code_review], tier: standard, min_tier: standard}
+  - {id: ev-017, query: "do a threat model of our oauth token exchange and the trust boundaries involved", intent: security_architecture_review, tier: powerful, min_tier: standard}
+  - {id: ev-018, query: "what trends stand out in this quarterly sales table?", intent: data_analysis, tier: standard, min_tier: standard}
+  - {id: ev-019, query: "checkout is throwing 500s in prod right now and I do not know why, where do I start?", intent: incident_response, tier: powerful, min_tier: standard}
+  - {id: ev-020, query: "which planet sits closest to the sun?", intent: factual_qa, tier: fast, min_tier: fast}
+  - {id: ev-021, query: "in plain terms, what separates a process from a thread?", intent: how_to_explanation, intent_alt: [factual_qa], tier: fast, min_tier: fast}
+  - {id: ev-022, query: "hey, you around?", intent: conversational, tier: fast, min_tier: fast}
+  - {id: ev-023, query: "put this sentence into japanese: the meeting is at noon", intent: translation, tier: fast, min_tier: fast}
+  - {id: ev-024, query: "look over this auth code and point out any security weaknesses you find", intent: security_scanning, intent_alt: [code_review], tier: standard, min_tier: standard}
+  - {id: ev-025, query: "walk me through writing a quicksort and then give me the code", intent: code_generation, intent_alt: [how_to_explanation], tier: standard, min_tier: fast}
+  - {id: ev-026, query: "a one-liner to reverse a string", intent: code_generation, tier: fast, min_tier: fast}
+  - {id: ev-027, query: "design a fault-tolerant exactly-once event pipeline across regions with backpressure and replay", intent: architecture_design, tier: powerful, min_tier: standard}
+  - {id: ev-028, query: "condense this 40-page RFC into a one-page exec brief covering risks and open questions", intent: summarisation, tier: standard, min_tier: fast}
+  - {id: ev-029, query: "render this three-paragraph legal disclaimer in german, keep the terminology precise", intent: translation, tier: standard, min_tier: fast}
+  - {id: ev-030, query: "what time is it in tokyo right now?", intent: factual_qa, tier: fast, min_tier: fast}
+  - {id: ev-031, query: "prove that the square root of 2 is irrational", intent: math_problem, tier: powerful, min_tier: fast}
+  - {id: ev-032, query: "help me brainstorm some names for a new coffee shop", intent: creative_writing, tier: fast, min_tier: fast}
+  - {id: ev-033, query: "our nightly data job silently dropped 30 percent of rows last night, help me work out why", intent: incident_response, intent_alt: [data_analysis], tier: powerful, min_tier: standard}
+  - {id: ev-034, query: "clean up this function to remove the duplication", intent: code_generation, intent_alt: [code_review, code_formatting], tier: standard, min_tier: fast}
+  - {id: ev-035, query: "what are the tradeoffs between rest and grpc for internal services?", intent: how_to_explanation, intent_alt: [architecture_design], tier: standard, min_tier: fast}
+  - {id: ev-036, query: "good morning! could you help me plan out my day?", intent: conversational, tier: fast, min_tier: fast}

@@ -55,7 +55,7 @@ response into the exact shape a component wants. Swap the backend and only this 
 | `src/index.css` | The whole design system — pine/gold/parchment tokens, dark theme, and all `nx-*` component styles. |
 | `src/api/modelIntelligenceApi.js` | **The data layer.** `request()` helper + every endpoint wrapper + adapters (`adaptModel`, `adaptRule`) + the live `allModels` cache. |
 | **Console** | |
-| `src/components/Console.jsx` | The command bar: prompt + profile (balanced/quality/cost/latency) + options (intent/agent/workspace/session). Shows the routed model, a "why" breakdown with candidate bars, and the live output. Calls `POST /console/ask`. |
+| `src/components/Console.jsx` | The command bar: prompt + options (intent/agent/workspace/session). Auto-routes with one quality-first policy (no profile knob). Shows the routed model, a "why" breakdown with capability-fit bars, and the live output. Calls `POST /console/ask`. |
 | **Configure** | |
 | `src/components/Configure.jsx` | Tab strip + renders the active panel. |
 | `src/components/Catalog.jsx` | Searchable/filterable model grid + "Add model". Opens the detail drawer. |

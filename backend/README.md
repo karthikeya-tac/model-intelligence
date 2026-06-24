@@ -14,13 +14,14 @@ GET/PATCH pairs + the console + meta) on top of a **hybrid 2-layer router**.
 
 You send a prompt. The backend:
 
-1. **Level 1 — what kind of work is this?** Classify the prompt into an *intent*
-   (e.g. `code_generation`, `architecture_design`, `conversational`). Each intent maps to a
-   **tier** (`fast` / `standard` / `powerful`). Then **rules** can override the tier
-   (e.g. "anything about security → at least standard", "architecture → powerful").
-2. **Level 2 — which model in that tier is best?** Score every model in the chosen tier on
-   **quality × cost × latency** (weighted by a *profile*: balanced/quality/cost/latency) and
-   pick the winner, with a **failover** order behind it.
+1. **Level 1 — what kind of work is this, and how hard?** Classify the prompt into the top *intents*
+   (embedding-first via MiniLM, keyword fallback), measure a **difficulty** score from the query text,
+   and combine it with the intent's `complexity` to choose a **tier** (`fast`/`standard`/`powerful`).
+   Then **rules** can override the tier, a `min_tier` floor applies, and a low-confidence query is
+   **escalated** to a stronger tier. (So the *same* intent routes harder questions to higher tiers.)
+2. **Level 2 — which model in that tier is best?** Score every model on a **multi-dimension capability
+   fit** — quality = the *need-vector* (fused from the top-k intents) · the model's real
+   `capability_scores`. Quality-first; cost/latency only break near-ties. Pick the winner + a **failover** order.
 3. **Answer it.** Estimate cost/latency (always), and if a provider API key is set, actually
    call that provider's nearest real model and stream the text back.
 
@@ -44,7 +45,7 @@ Optional env (see `.env.example`):
 | Var | Default | Meaning |
 |---|---|---|
 | `REGISTRY_MODE` | `file` | `file` or `db`. Only flips a UI write-gate label — Phase 0 has no real DB. |
-| `SEMANTIC` | `0` | `1` = use the embedding classifier (needs `sentence-transformers`); auto-falls back to keywords. |
+| `SEMANTIC` | `1` | `1` = embedding classifier (default; needs `sentence-transformers`). `0` = keyword-only. |
 | `CORS_ORIGINS` | `*` | Allowed front-end origins. |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY` | unset | If set, the console returns **live** output via that provider's real stand-in model. |
 
@@ -71,8 +72,11 @@ app/
     file_store.py    Phase-0 impl: immutable snapshot + in-memory overlay + audit log + atomic reload
 
   routing/           ── the brain ──
-    engine.py        RouterService: L1 classify + intent→tier + rules → L2 pick. The core decision.
-    selector.py      ScoringSelector (Level 2): quality×cost×latency scoring + failover ordering
+    engine.py        RouterService: L1 (classify + difficulty→tier + rules + escalation) → L2 pick.
+    classifier.py    embedding-first intent classifier (MiniLM, softmax top-k) + keyword fallback
+    features.py      deterministic query features → difficulty score (0..1)
+    difficulty.py    difficulty × intent.complexity → base tier (raise-only)
+    selector.py      ScoringSelector (Level 2): multi-dimension capability-vector fit + failover ordering
     sim.py           Deterministic cost/latency/tokens/value_score from catalog data (no network)
     execute.py       Real provider calls (urllib) via a STANDIN map — catalog names are future/
                      fictional, so it calls each provider's nearest REAL model. No key → skipped.
@@ -102,7 +106,8 @@ config_data/         ── the single source of truth (Phase 0) ──
     intents.yaml     19 intents in 6 categories, each with keywords + default/min tier
     rules.yaml       9 routing rules (route/boost/limit/redirect/cost_cap/timed)
     routes.yaml      Utterance examples for the semantic classifier (SEMANTIC=1)
-    selection.yaml   Level-2 scoring weights per profile + fallback chains per tier
+    selection.yaml   routing policy: difficulty weights, complexity→tier map, classifier/escalation
+                     thresholds, intent→capability-dimension blends, tie epsilon
 
 requirements.txt     fastapi, uvicorn, pydantic v2, pydantic-settings, pyyaml, numpy (sentence-transformers optional)
 ```
@@ -138,11 +143,11 @@ curl "localhost:8000/api/v1/models?tier=fast"
 # the 2-layer router in action
 curl -X POST localhost:8000/api/v1/console/ask -H 'content-type: application/json' \
   -d '{"prompt":"write a function to dedupe a list"}'
-# → code_generation → standard → gpt-5-mini
+# → code_generation → standard → claude-sonnet-4-6 (highest capability fit in tier)
 
 curl -X POST localhost:8000/api/v1/console/ask -H 'content-type: application/json' \
-  -d '{"prompt":"design a fault-tolerant payment architecture","profile":"quality"}'
-# → architecture_design → powerful → gpt-5.3-codex (rule architecture_to_powerful fired)
+  -d '{"prompt":"design a fault-tolerant payment architecture"}'
+# → architecture_design → powerful → claude-opus-4-8 (rule architecture_to_powerful fired)
 
 # writes mutate the overlay; audit records them; reload resets to disk
 curl -X PATCH localhost:8000/api/v1/intents/code_generation -H 'content-type: application/json' -d '{"default_tier":"standard"}'
