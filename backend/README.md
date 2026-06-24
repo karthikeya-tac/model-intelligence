@@ -167,6 +167,18 @@ curl -X POST localhost:8000/api/v1/registry/reload
   map in `execute.py` to the provider's nearest real model (labeled "live via …").
 - **Secrets** are only `${ENV_VAR}` references; the API returns a configured/unset hint, never a value.
 
+## Tests & eval
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q                         # tests/ — routing unit tests + an endpoint audit (boots the app, hits every group)
+python -m eval.run_eval           # eval/ — routing-quality on a labelled set (intent + tier accuracy)
+python -m eval.run_eval --check   # same, but exits non-zero below the committed baseline (CI gate)
+```
+- `tests/test_routing.py` — query features, difficulty→tier, multi-dimension selection, route determinism/shape.
+- `tests/test_endpoints.py` — spins up the app via `TestClient` and asserts every endpoint group responds.
+- `eval/dataset.yaml` — labelled queries (kept distinct from `routes.yaml`/keywords). Grow it to harden the numbers.
+
 ## Phase-0 constraints (read before deploying)
 
 These are **deliberate prototype choices**, with Phase-1 seams already in place. They're called

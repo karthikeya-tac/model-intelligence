@@ -1,0 +1,6 @@
+# Dev/test dependencies (not needed to run the service).
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest -q                 # unit tests + endpoint audit (tests/)
+#   python -m eval.run_eval   # offline routing-quality eval
+pytest>=7
+httpx>=0.27          # FastAPI TestClient (tests/test_endpoints.py)

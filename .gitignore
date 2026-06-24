@@ -25,6 +25,9 @@ dist-ssr/
 # ── internal docs (not for the repo) ──
 ENDPOINT_AUDIT.md
 
+# ── routing experiment / eval harness (kept local; not part of the shipped product) ──
+backend/experiments/
+
 # ── editor / OS ──
 .DS_Store
 .idea/
